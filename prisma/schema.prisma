@@ -1,0 +1,459 @@
+// DALEH — Schema do banco de dados
+// Reflete o modelo desenhado em documento de arquitetura do produto (seção 4).
+// Rodar `npm run prisma:migrate` depois de configurar o DATABASE_URL no .env
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// IDENTIDADE & RBAC
+// ---------------------------------------------------------------------------
+
+enum AuthProvider {
+  GOOGLE
+  APPLE
+  EMAIL
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String?   @unique
+  phone              String?   @unique
+  authProvider       AuthProvider @default(EMAIL) @map("auth_provider")
+  passwordHash       String?   @map("password_hash")
+  fullName           String    @map("full_name")
+  avatarUrl          String?   @map("avatar_url")
+  city               String?
+  state              String?
+  birthDate          DateTime? @map("birth_date")
+  isPro              Boolean   @default(false) @map("is_pro")
+  proExpiresAt       DateTime? @map("pro_expires_at")
+  celebrationGifKey  String?   @map("celebration_gif_key") // ex: "voadora" | "coracao" | "coroa"
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  playerProfile      PlayerProfile?
+  playerModalidades  PlayerModalidade[]
+  playerStats        PlayerStats[]
+  userRoles          UserRole[]
+  teamMemberships    TeamMember[]
+  ownedTeams         Team[]              @relation("TeamOwner")
+  ownedVenues        Venue[]             @relation("VenueOwner")
+  callUps            CallUp[]
+  matchAttendances   MatchAttendance[]
+  matchEvents        MatchEvent[]
+  reviewsGiven       Review[]            @relation("ReviewsGiven")
+  reviewsReceived    Review[]            @relation("ReviewsReceived")
+  payments           Payment[]
+  notifications      Notification[]
+
+  @@map("users")
+}
+
+model PlayerProfile {
+  userId        String   @id @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dominantFoot  String?  @map("dominant_foot") // Direito | Esquerdo | Ambos
+  weightKg      Float?   @map("weight_kg")
+  heightCm      Float?   @map("height_cm")
+  skillLevel    String?  @map("skill_level")
+  bio           String?
+
+  @@map("player_profiles")
+}
+
+enum ModalidadeKey {
+  FUTSAL
+  SOCIETY
+  CAMPO11
+}
+
+model Modalidade {
+  id                String              @id @default(uuid())
+  key               ModalidadeKey       @unique
+  label             String
+  positions         Json                // ex: ["Goleiro","Fixo","Ala","Pivo"]
+
+  playerModalidades PlayerModalidade[]
+  playerStats       PlayerStats[]
+  teamChallenges    TeamChallenge[]
+  matches           Match[]
+
+  @@map("modalidades")
+}
+
+model PlayerModalidade {
+  id                String     @id @default(uuid())
+  userId            String     @map("user_id")
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modalidadeId      String     @map("modalidade_id")
+  modalidade        Modalidade @relation(fields: [modalidadeId], references: [id])
+  posicaoPrincipal  String     @map("posicao_principal")
+  posicaoSecundaria String?    @map("posicao_secundaria")
+
+  @@unique([userId, modalidadeId])
+  @@map("player_modalidades")
+}
+
+model PlayerStats {
+  id           String     @id @default(uuid())
+  userId       String     @map("user_id")
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modalidadeId String     @map("modalidade_id")
+  modalidade   Modalidade @relation(fields: [modalidadeId], references: [id])
+
+  gamesPlayed  Int        @default(0) @map("games_played")
+  wins         Int        @default(0)
+  draws        Int        @default(0)
+  losses       Int        @default(0)
+  goals        Int        @default(0)
+  assists      Int        @default(0)
+  yellowCards  Int        @default(0) @map("yellow_cards")
+  redCards     Int        @default(0) @map("red_cards")
+  mvpCount     Int        @default(0) @map("mvp_count")
+  avgRating    Float      @default(0) @map("avg_rating")
+  winStreak    Int        @default(0) @map("win_streak")
+
+  @@unique([userId, modalidadeId])
+  @@map("player_stats")
+}
+
+model Role {
+  id        String     @id @default(uuid())
+  key       String     @unique // player | team_admin | venue_owner | organizer | referee | platform_admin
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id          String  @id @default(uuid())
+  userId      String  @map("user_id")
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId      String  @map("role_id")
+  role        Role    @relation(fields: [roleId], references: [id])
+  contextType String? @map("context_type") // "team" | "venue" | "championship" | null
+  contextId   String? @map("context_id")
+
+  @@map("user_roles")
+}
+
+// ---------------------------------------------------------------------------
+// TIMES
+// ---------------------------------------------------------------------------
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String
+  crestUrl  String?  @map("crest_url")
+  city      String?
+  state     String?
+  ownerId   String   @map("owner_id")
+  owner     User     @relation("TeamOwner", fields: [ownerId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+
+  members         TeamMember[]
+  finances        TeamFinance[]
+  challenges      TeamChallenge[]      @relation("ChallengeOrganizer")
+  challengeReqs   ChallengeRequest[]
+  callUps         CallUp[]
+  matchesHome     Match[]              @relation("MatchHomeTeam")
+  matchesAway     Match[]              @relation("MatchAwayTeam")
+  championships   ChampionshipTeam[]
+
+  @@map("teams")
+}
+
+enum PapelTime {
+  JOGADOR
+  CAPITAO
+  VICE_CAPITAO
+  TESOUREIRO
+}
+
+model TeamMember {
+  id        String    @id @default(uuid())
+  teamId    String    @map("team_id")
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id])
+  papel     PapelTime @default(JOGADOR)
+  status    String    @default("active") // active | invited | removed
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model TeamFinance {
+  id           String   @id @default(uuid())
+  teamId       String   @map("team_id")
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  type         String   // income | expense
+  amount       Float
+  pixReference String?  @map("pix_reference")
+  paidById     String?  @map("paid_by")
+  dueDate      DateTime? @map("due_date")
+  paidAt       DateTime? @map("paid_at")
+
+  @@map("team_finances")
+}
+
+// Marketplace "buscar adversário"
+enum ChallengeStatus {
+  ABERTA
+  CONFIRMADA
+  CANCELADA
+}
+
+model TeamChallenge {
+  id             String          @id @default(uuid())
+  teamId         String          @map("team_id")
+  team           Team            @relation("ChallengeOrganizer", fields: [teamId], references: [id], onDelete: Cascade)
+  modalidadeId   String          @map("modalidade_id")
+  modalidade     Modalidade      @relation(fields: [modalidadeId], references: [id])
+  city           String
+  venueId        String?         @map("venue_id")
+  venue          Venue?          @relation(fields: [venueId], references: [id])
+  scheduledDate  DateTime        @map("scheduled_date")
+  scheduledTime  String          @map("scheduled_time")
+  desiredLevel   String          @map("desired_level") // iniciante | intermediario | avancado
+  status         ChallengeStatus @default(ABERTA)
+  opponentTeamId String?         @map("opponent_team_id")
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  requests       ChallengeRequest[]
+
+  @@map("team_challenges")
+}
+
+enum RequestStatus {
+  PENDENTE
+  ACEITA
+  RECUSADA
+}
+
+model ChallengeRequest {
+  id                 String        @id @default(uuid())
+  challengeId        String        @map("challenge_id")
+  challenge          TeamChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  requestingTeamId   String        @map("requesting_team_id")
+  requestingTeam     Team          @relation(fields: [requestingTeamId], references: [id])
+  status             RequestStatus @default(PENDENTE)
+  createdAt          DateTime      @default(now()) @map("created_at")
+
+  @@unique([challengeId, requestingTeamId])
+  @@map("challenge_requests")
+}
+
+// "Convocação" — uma linha por atleta convocado
+enum CallUpStatus {
+  PENDENTE
+  CONFIRMADO
+  RECUSADO
+}
+
+model CallUp {
+  id                 String       @id @default(uuid())
+  teamId             String       @map("team_id")
+  team               Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  matchId            String?      @map("match_id")
+  match              Match?       @relation(fields: [matchId], references: [id])
+  userId             String       @map("user_id")
+  user               User         @relation(fields: [userId], references: [id])
+  venueNameSnapshot  String       @map("venue_name_snapshot")
+  scheduledDate      DateTime     @map("scheduled_date")
+  scheduledTime      String       @map("scheduled_time")
+  status             CallUpStatus @default(PENDENTE)
+  respondedAt        DateTime?    @map("responded_at")
+  createdAt          DateTime     @default(now()) @map("created_at")
+
+  @@map("call_ups")
+}
+
+// ---------------------------------------------------------------------------
+// QUADRAS
+// ---------------------------------------------------------------------------
+
+model Venue {
+  id             String   @id @default(uuid())
+  ownerId        String   @map("owner_id")
+  owner          User     @relation("VenueOwner", fields: [ownerId], references: [id])
+  name           String
+  address        String?
+  lat            Float?
+  lng            Float?
+  covered        Boolean  @default(false)
+  hasParking     Boolean  @default(false) @map("has_parking")
+  hasBar         Boolean  @default(false) @map("has_bar")
+  hasLockerRoom  Boolean  @default(false) @map("has_locker_room")
+  rentsVests     Boolean  @default(false) @map("rents_vests")
+  rentsBalls     Boolean  @default(false) @map("rents_balls")
+  pricePerHour   Float?   @map("price_per_hour")
+  avgRating      Float    @default(0) @map("avg_rating")
+
+  slots          VenueSlot[]
+  challenges     TeamChallenge[]
+  matches        Match[]
+
+  @@map("venues")
+}
+
+model VenueSlot {
+  id          String   @id @default(uuid())
+  venueId     String   @map("venue_id")
+  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  weekday     Int      // 0=Seg ... 6=Dom, seguindo a grade do protótipo
+  startTime   String   @map("start_time") // "18:00"
+  endTime     String   @map("end_time")   // "19:00"
+  price       Float
+  isRecurring Boolean  @default(true) @map("is_recurring")
+
+  bookings    Booking[]
+
+  @@map("venue_slots")
+}
+
+model Booking {
+  id          String   @id @default(uuid())
+  venueSlotId String   @map("venue_slot_id")
+  venueSlot   VenueSlot @relation(fields: [venueSlotId], references: [id])
+  bookedById  String   @map("booked_by") // user_id ou team_id, resolvido na camada de aplicação
+  date        DateTime
+  status      String   @default("pending") // pending | confirmed | cancelled
+  paymentId   String?  @map("payment_id")
+
+  @@map("bookings")
+}
+
+// ---------------------------------------------------------------------------
+// JOGOS / PARTIDAS
+// ---------------------------------------------------------------------------
+
+model Match {
+  id              String   @id @default(uuid())
+  venueId         String?  @map("venue_id")
+  venue           Venue?   @relation(fields: [venueId], references: [id])
+  modalidadeId    String   @map("modalidade_id")
+  modalidade      Modalidade @relation(fields: [modalidadeId], references: [id])
+  championshipId  String?  @map("championship_id")
+  championship    Championship? @relation(fields: [championshipId], references: [id])
+  homeTeamId      String?  @map("home_team_id")
+  homeTeam        Team?    @relation("MatchHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId      String?  @map("away_team_id")
+  awayTeam        Team?    @relation("MatchAwayTeam", fields: [awayTeamId], references: [id])
+  scheduledAt     DateTime @map("scheduled_at")
+  status          String   @default("scheduled") // scheduled | in_progress | finished | cancelled
+  maxPlayers      Int?     @map("max_players")
+  visibility      String   @default("public") // public | private
+
+  attendance      MatchAttendance[]
+  events          MatchEvent[]
+  callUps         CallUp[]
+
+  @@map("matches")
+}
+
+model MatchAttendance {
+  id         String   @id @default(uuid())
+  matchId    String   @map("match_id")
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id])
+  status     String   @default("confirmed") // confirmed | waitlist | declined
+  checkedInAt DateTime? @map("checked_in_at")
+
+  @@unique([matchId, userId])
+  @@map("match_attendance")
+}
+
+model MatchEvent {
+  id        String   @id @default(uuid())
+  matchId   String   @map("match_id")
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  eventType String   @map("event_type") // goal | assist | yellow | red | mvp
+  minute    Int?
+
+  @@map("match_events")
+}
+
+// ---------------------------------------------------------------------------
+// CAMPEONATOS (fase futura — schema já reservado)
+// ---------------------------------------------------------------------------
+
+model Championship {
+  id         String   @id @default(uuid())
+  organizerId String  @map("organizer_id")
+  name       String
+  format     String   // groups | knockout | mixed
+  startDate  DateTime? @map("start_date")
+  endDate    DateTime? @map("end_date")
+  entryFee   Float?   @map("entry_fee")
+
+  teams      ChampionshipTeam[]
+  matches    Match[]
+
+  @@map("championships")
+}
+
+model ChampionshipTeam {
+  id             String       @id @default(uuid())
+  championshipId String       @map("championship_id")
+  championship   Championship @relation(fields: [championshipId], references: [id], onDelete: Cascade)
+  teamId         String       @map("team_id")
+  team           Team         @relation(fields: [teamId], references: [id])
+  groupName      String?      @map("group_name")
+  status         String       @default("pending")
+
+  @@map("championship_teams")
+}
+
+// ---------------------------------------------------------------------------
+// SOCIAL, PAGAMENTOS, NOTIFICAÇÕES
+// ---------------------------------------------------------------------------
+
+model Review {
+  id          String   @id @default(uuid())
+  matchId     String   @map("match_id")
+  reviewerId  String   @map("reviewer_id")
+  reviewer    User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  reviewedId  String   @map("reviewed_id")
+  reviewed    User     @relation("ReviewsReceived", fields: [reviewedId], references: [id])
+  rating      Int
+  tags        Json?    // ["fair_play","no_show","great_skill"]
+
+  @@map("reviews")
+}
+
+model Payment {
+  id                 String   @id @default(uuid())
+  userId             String   @map("user_id")
+  user               User     @relation(fields: [userId], references: [id])
+  type               String   // subscription | booking | championship_fee
+  provider           String   // pix | card
+  amount             Float
+  status             String   @default("pending")
+  externalReference  String?  @map("external_reference")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@map("payments")
+}
+
+model Notification {
+  id       String    @id @default(uuid())
+  userId   String    @map("user_id")
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type     String    // ex: "call_up"
+  payload  Json
+  readAt   DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
+}
