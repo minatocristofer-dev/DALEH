@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { SocialLoginDto } from './dto/social-login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -20,7 +21,11 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-  // TODO (próxima iteração): POST /auth/social (Google/Apple) —
-  // depende de qual provedor de auth for escolhido (Supabase Auth, Auth0 etc),
-  // conforme "Fundação técnica" no plano de implementação.
+  // Login social (Google/Apple) — o front loga via Supabase Auth e manda o
+  // access_token da sessão aqui pra trocar por um JWT nosso.
+  @Post('social')
+  @HttpCode(HttpStatus.OK)
+  social(@Body() dto: SocialLoginDto) {
+    return this.authService.socialLogin(dto);
+  }
 }

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>DALEH — Teste de login social</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+  button { padding: 10px 16px; font-size: 15px; cursor: pointer; margin-right: 8px; }
+  pre { background: #f2f2f2; padding: 12px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  label { display: block; margin-top: 16px; font-size: 14px; }
+</style>
+</head>
+<body>
+  <h1>DALEH — Teste de login social</h1>
+
+  <button id="btn-login">Entrar com Google</button>
+  <button id="btn-logout">Sair</button>
+
+  <h3>Sessão do Supabase</h3>
+  <pre id="sessao">(nenhuma sessão ainda)</pre>
+
+  <label>
+    URL da API DALEH:
+    <input id="api-url" type="text" style="width: 100%" value="http://localhost:3000/v1" />
+  </label>
+
+  <button id="btn-social">Testar POST /auth/social</button>
+  <h3>Resposta da API</h3>
+  <pre id="resposta">(nenhuma chamada ainda)</pre>
+
+<script>
+  const SUPABASE_URL = "https://glgdiymnhmcvzhtmbqqb.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsZ2RpeW1uaG1jdnpodG1icXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2MTAzNTYsImV4cCI6MjEwMTE4NjM1Nn0.XAacR5Uk9dXya_Eh9Ol20HZ6bP3_uXnQo7WViT7zIDs";
+
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $sessao = document.getElementById('sessao');
+  const $resposta = document.getElementById('resposta');
+
+  async function mostrarSessao() {
+    const { data } = await supabaseClient.auth.getSession();
+    $sessao.textContent = data.session
+      ? JSON.stringify({ access_token: data.session.access_token, user: data.session.user }, null, 2)
+      : '(nenhuma sessão ainda)';
+  }
+
+  document.getElementById('btn-login').addEventListener('click', async () => {
+    await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href },
+    });
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    await mostrarSessao();
+  });
+
+  document.getElementById('btn-social').addEventListener('click', async () => {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) {
+      $resposta.textContent = 'Faça login com Google primeiro.';
+      return;
+    }
+    const apiUrl = document.getElementById('api-url').value.replace(/\/$/, '');
+    try {
+      const resp = await fetch(`${apiUrl}/auth/social`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken: data.session.access_token,
+          consentimentoDadosSensiveis: true,
+        }),
+      });
+      const body = await resp.json();
+      $resposta.textContent = `STATUS ${resp.status}\n` + JSON.stringify(body, null, 2);
+    } catch (err) {
+      $resposta.textContent = 'Erro: ' + err.message;
+    }
+  });
+
+  mostrarSessao();
+</script>
+</body>
+</html>
