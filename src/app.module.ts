@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { IdentityModule } from './modules/identity/identity.module';
+import { TeamsModule } from './modules/teams/teams.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -9,9 +10,10 @@ import { HealthController } from './health.controller';
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     IdentityModule,
+    TeamsModule,
     // Próximos módulos, na ordem do plano de implementação:
-    // TeamsModule (times + convocação), VenuesModule (quadras + agenda),
-    // MatchesModule (peladas + marketplace de adversário), NotificationsModule (push).
+    // VenuesModule (quadras + agenda), MatchesModule (peladas + marketplace
+    // de adversário), NotificationsModule (push).
   ],
   controllers: [HealthController],
 })
