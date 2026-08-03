@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a1512;
+  --surface: #101c18;
+  --surface2: #17261f;
+  --line: #223229;
+  --turf: #c6ff4d;
+  --turf-dim: #8fcc2e;
+  --amber: #ffb238;
+  --text: #f2f7f4;
+  --muted: #85998e;
+  --danger: #ff6e6e;
+}
+
+body {
+  margin: 0;
+}
+
+.fm-root {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.fm-stripes {
+  background-image: repeating-linear-gradient(100deg, #10201a 0px, #10201a 26px, #0c1a15 26px, #0c1a15 52px);
+}
+
+.fm-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.fm-input {
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.fm-input::placeholder {
+  color: var(--muted);
+}
+.fm-input:focus {
+  outline: none;
+  border-color: var(--turf);
+  box-shadow: 0 0 0 3px rgba(198, 255, 77, 0.15);
+}
+
+.fm-digit {
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.fm-digit.active {
+  color: var(--bg);
+  background: var(--turf);
+  border-color: var(--turf);
+}
+.fm-digit.done {
+  color: var(--turf);
+  border-color: var(--turf-dim);
+}
+
+.fm-btn-primary {
+  background: var(--turf);
+  color: #08130e;
+}
+.fm-btn-primary:active {
+  background: var(--turf-dim);
+}
+.fm-btn-primary:disabled {
+  opacity: 0.4;
+}
+
+.fm-btn-secondary {
+  background: transparent;
+  color: var(--turf);
+  border: 1px solid var(--turf-dim);
+}
+
+.fm-chip {
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.fm-chip.on {
+  border-color: var(--turf);
+  color: var(--turf);
+  background: rgba(198, 255, 77, 0.08);
+}
+
+.fm-tab {
+  color: var(--muted);
+}
+.fm-tab.on {
+  color: var(--text);
+}
+
+.fm-error {
+  color: var(--danger);
+}
+
+::selection {
+  background: var(--turf);
+  color: #08130e;
+}
