@@ -52,41 +52,48 @@ em `C:\Users\minat\Downloads\FullMatch_Arquitetura_Produto.md` e
 
 | Camada | Escolha | Status |
 |---|---|---|
-| Backend | NestJS (TypeScript) | Identity/Auth completo (email/senha + Google) |
-| ORM / Banco | Prisma + PostgreSQL | Schema completo, migration aplicada |
+| Backend | NestJS (TypeScript) | Identity, Teams, Venues, Matches, Notifications — todos no ar |
+| ORM / Banco | Prisma + PostgreSQL | Schema completo, todas as migrations aplicadas |
 | Banco hospedado em | **Supabase** (projeto `glgdiymnhmcvzhtmbqqb`) — usar sempre o **pooler** (`aws-1-us-west-2.pooler.supabase.com`): porta 6543 c/ `pgbouncer=true` no `DATABASE_URL`, porta 5432 (session mode) no `DIRECT_URL`. **Nunca** usar o host direto `db.*.supabase.co` — só responde em IPv6, quebra em hosts sem rota IPv6 (ex: Render) | ✅ No ar |
-| Host do servidor | **Render** (Web Service free, deploy automático do GitHub) — `https://daleh-fx5c.onrender.com/v1` | ✅ No ar |
+| Host do servidor | **Render** (Web Service free, 512MB RAM, deploy automático do GitHub) — `https://daleh-fx5c.onrender.com/v1` | ✅ No ar |
 | Auth | JWT próprio (email/senha) + login social Google via Supabase Auth (`POST /auth/social`) | Google pronto; Apple mapeado no código mas não habilitado (exige conta paga Apple Developer) |
-| Push notifications | Firebase Cloud Messaging (planejado) | Não iniciado |
+| Push notifications | Firebase Cloud Messaging | Infra pronta no código (`NotificationsModule`), **desativada** até existir uma conta Firebase — ver seção 6.2 |
 | Frontend definitivo | **Flutter** (decisão tomada, ainda não iniciado) | Não iniciado |
-| Demo web temporário | React + Vite + Tailwind, pasta `daleh-web/` neste mesmo repo | Ver seção 6.1 — **não é o frontend de produção**, é só pra testar/mostrar o que já funciona |
+| Demo web temporário | React + Vite + Tailwind, pasta `daleh-web/` neste mesmo repo — `https://daleh-web.onrender.com` | Ver seção 6.1 — **não é o frontend de produção**, é só pra testar/mostrar o que já funciona |
 | Protótipo de UX/visual original | React + Tailwind (artifact do Claude, arquivo `fullmatch-core.jsx` em Downloads) | Referência de design pro Flutter — ver seção 6 |
 
 Repositório: `github.com/minatocristofer-dev/DALEH`.
+
+**Cuidado com memória no Render free (512MB)**: já aconteceu de um `npm install`
+trazer uma dependência pesada (`firebase-admin`, que arrasta gRPC/protobuf) e
+estourar OOM só de ser **importada**, mesmo sem uso — o processo morria no
+boot com "JavaScript heap out of memory". Corrigido usando `require()`
+dentro do `if` que só roda quando as credenciais existem (`fcm.service.ts`),
+em vez de `import` estático no topo do arquivo. Ao adicionar dependências
+pesadas no futuro, considerar lazy-load do mesmo jeito.
 
 ---
 
 ## 4. Banco de dados — visão geral
 
-Schema completo em `prisma/schema.prisma`, migration inicial em
-`prisma/migrations/20260801140000_init/migration.sql`, **já aplicada** contra
-o banco real no Supabase (`prisma migrate deploy` rodado com sucesso).
+Schema completo em `prisma/schema.prisma`, todas as migrations aplicadas
+contra o banco real no Supabase (`prisma migrate deploy`), incluindo duas
+adicionadas depois da migration inicial: `Match.createdById` (o schema
+original não tinha como saber quem criou uma pelada avulsa) e `DeviceToken`
+(token de push por dispositivo).
 
 Tabelas por domínio:
 
 - **Identidade/RBAC**: `users`, `player_profiles`, `modalidades`,
   `player_modalidades`, `player_stats`, `roles`, `user_roles`
-- **Times**: `teams`, `team_members`, `team_finances`, `team_challenges`,
-  `challenge_requests`, `call_ups`
+- **Times**: `teams`, `team_members`, `team_finances` (schema pronto, sem
+  endpoint ainda), `team_challenges`, `challenge_requests`, `call_ups`
 - **Quadras**: `venues`, `venue_slots`, `bookings`
-- **Jogos**: `matches`, `match_attendance`, `match_events`
-- **Campeonatos** (schema pronto, fase futura): `championships`,
-  `championship_teams`
-- **Social/Pagamento/Notificação**: `reviews`, `payments`, `notifications`
-
-**Regra de negócio importante ainda não implementada em código**: ao aceitar uma
-`challenge_request`, as demais da mesma `team_challenge` precisam ser recusadas
-automaticamente na mesma transação.
+- **Jogos**: `matches` (com `created_by`), `match_attendance`, `match_events`
+- **Campeonatos** (schema pronto, fase futura, sem módulo ainda):
+  `championships`, `championship_teams`
+- **Social/Pagamento/Notificação**: `reviews` (schema pronto, sem endpoint),
+  `payments` (schema pronto, sem endpoint), `notifications`, `device_tokens`
 
 **Modalidades**: Futsal (Goleiro, Fixo, Ala, Pivô), Society/Campo 7 (Goleiro,
 Zagueiro, Lateral, Meia, Atacante), Campo 11 (Goleiro, Zagueiro, Lateral,
@@ -96,25 +103,44 @@ Volante, Meia, Atacante). Populadas via `prisma/seed.ts`.
 
 ## 5. Backend — o que já existe em código
 
-- `src/modules/identity/` —
-  - `POST /v1/auth/register` — cria usuário + perfil + modalidades numa
-    transação, estatísticas nascendo zeradas, consentimento LGPD explícito.
-  - `POST /v1/auth/login` — e-mail/senha, retorna JWT.
-  - `POST /v1/auth/social` — recebe o `access_token` de uma sessão do
-    Supabase Auth (Google), verifica via `SupabaseAuthService`
-    (`supabase-auth.service.ts`), faz find-or-create do usuário e devolve o
-    mesmo formato de JWT dos outros dois endpoints.
-- `src/common/guards/roles.guard.ts` + `@Roles()` — RBAC pronto pra usar.
-- `src/health.controller.ts` — `GET /v1/` retorna `{status: 'ok', ...}`,
-  usado pra checar rapidamente se a API está no ar.
+Todos os módulos do roadmap original (seção 8) estão implementados e no ar.
+Padrão comum a todos: DTOs com `class-validator`, todas as rotas atrás de
+`@UseGuards(AuthGuard('jwt'))`, RBAC contextual (quem é dono/capitão de *qual*
+recurso) checado no service — nunca só no guard genérico — via um método
+privado tipo `exigirDono`/`exigirCapitaoOuDono` em cada service.
+
+- **`src/modules/identity/`** — `POST /auth/register`, `POST /auth/login`,
+  `POST /auth/social` (Google via Supabase Auth, `SupabaseAuthService`).
+- **`src/modules/teams/`** — `TeamsController` (`/teams/*`: criar, listar,
+  detalhe, gerenciar elenco) + `CallUpsController` (`/call-ups/*`: minhas
+  convocações, responder). Convocar o elenco cria 1 `CallUp` por atleta e
+  dispara `NotificationsService.notificar()` (in-app + push best-effort).
+- **`src/modules/venues/`** — `VenuesController` (`/venues/*`: CRUD de
+  quadra, horários recorrentes, disponibilidade por data) +
+  `BookingsController` (`/bookings/*`: minhas reservas, dono
+  confirma/cancela, cancelar a própria). Bloqueia reserva duplicada do mesmo
+  horário/data com `409 Conflict`.
+- **`src/modules/matches/`** — `MatchesController` (`/matches/*`: peladas
+  avulsas — criar, confirmar/cancelar presença com lista de espera automática,
+  registrar eventos de súmula) + `TeamChallengesController`
+  (`/team-challenges/*`: marketplace de adversário — publicar desafio,
+  solicitar, aceitar. Aceitar uma solicitação recusa as outras da mesma
+  automaticamente, numa transação — regra de negócio documentada desde o
+  início do projeto).
+- **`src/modules/notifications/`** — `NotificationsController`
+  (`/notifications/*`: inbox in-app, marcar como lida, registrar token de
+  push) + `FcmService` (push real via Firebase, **atualmente em modo
+  no-op** — ver seção 6.2).
+- `src/common/decorators/current-user.decorator.ts` — `@CurrentUser()`,
+  extrai `{id, email}` do JWT validado, usado em todo controller autenticado.
+- `src/common/guards/roles.guard.ts` + `@Roles()` — RBAC de papel *global*
+  (ex: `platform_admin`); RBAC de contexto é responsabilidade de cada service.
+- `src/health.controller.ts` — `GET /v1/` retorna `{status: 'ok', ...}`.
 - `prisma/seed.ts` — popula modalidades e papéis de RBAC.
 
-**Módulos ainda não iniciados** (comentário em `app.module.ts`, ordem
-recomendada):
-1. `TeamsModule` — times + convocação (marco: push notification de verdade)
-2. `VenuesModule` — quadras + agenda (separação visualização/gestão)
-3. `MatchesModule` — peladas avulsas + marketplace de adversário
-4. `NotificationsModule` — Firebase Cloud Messaging
+**Ainda fora de escopo** (schema existe, sem endpoint): financeiro de time
+(`team_finances`), avaliações pós-jogo (`reviews`), pagamentos (`payments`),
+campeonatos (`championships`).
 
 ---
 
@@ -141,15 +167,35 @@ Avisos (inbox de convocação).
 
 ### 6.1 Demo web temporário (`daleh-web/`) — **não confundir com o Flutter**
 
-Pasta nova neste repo (`daleh-api/daleh-web`), Vite + React + Tailwind,
-reaproveitando o visual exato do `fullmatch-core.jsx`, mas com Login/Cadastro
-**de verdade** conectados na API (`register`/`login`/`social`). Quadras e
-Times continuam com dados fake, iguais ao protótipo original, já que os
-módulos de backend deles não existem ainda. Publicado como um Static Site
-separado no Render, na mesma conta do backend.
+Pasta neste repo (`daleh-api/daleh-web`), Vite + React + Tailwind,
+reaproveitando o visual exato do `fullmatch-core.jsx`, publicado como Static
+Site separado no Render (`https://daleh-web.onrender.com`), mesma conta do
+backend. Conectado de verdade em:
+- Login/Cadastro (`register`/`login`/`social`)
+- Times (`TeamsModule`: criar time, ver elenco, adicionar jogador por e-mail)
+- Quadras (`VenuesModule`: criar quadra, listar minhas quadras)
+
+**Ainda não conectado**: telas de Jogos/peladas, marketplace de adversário,
+agenda/reserva de quadra (existe API pronta em `VenuesModule`/`MatchesModule`,
+só falta a tela). Avisos/inbox de notificação também tem API pronta
+(`NotificationsModule`) sem tela ainda.
 
 **Propósito**: só validar/demonstrar o que já está funcionando ponta a ponta,
 enquanto o Flutter (frontend definitivo) não começa. Não vira produto.
+
+### 6.2 Push notifications (Firebase) — infra pronta, falta a conta
+
+`NotificationsModule`/`FcmService` já sabem enviar push de verdade, mas ficam
+em modo no-op até existirem estas env vars no Render: `FIREBASE_PROJECT_ID`,
+`FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (de uma service account do
+Firebase). Passos pra ativar quando for a hora:
+1. Criar projeto em console.firebase.google.com, ativar Cloud Messaging.
+2. Gerar uma service account (Project Settings > Service Accounts > Generate
+   new private key) — vira as 3 env vars acima.
+3. Configurar essas env vars no Web Service do Render.
+4. Nenhuma mudança de código é necessária — `FcmService` detecta as env vars
+   sozinho no boot e ativa (ver seção 3, aviso sobre lazy-load por causa de
+   memória no free tier).
 
 ---
 
@@ -161,7 +207,9 @@ enquanto o Flutter (frontend definitivo) não começa. Não vira produto.
 - **Render**: Web Service `daleh-api` (free) rodando a API, deploy automático
   a cada push na branch `main`. Variáveis configuradas: `DATABASE_URL`,
   `DIRECT_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `SUPABASE_URL`,
-  `SUPABASE_ANON_KEY`. Static Site `daleh-web` publicando o demo (seção 6.1).
+  `SUPABASE_ANON_KEY`. Faltam as `FIREBASE_*` (seção 6.2). Static Site
+  `daleh-web` publicando o demo (seção 6.1) — os dois serviços observam o
+  mesmo repo/branch, então um push dispara redeploy dos dois.
 - **GitHub**: `github.com/minatocristofer-dev/DALEH`, branch `main`.
 - **Domínio**: nenhum domínio próprio comprado ainda — usando os subdomínios
   gratuitos do Render (`*.onrender.com`).
@@ -181,31 +229,41 @@ Fundação técnica (backend + schema + migrations) ✅
         ↓
 Autenticação completa (email/senha ✅, Google ✅, Apple pendente) + Perfil
         ↓
-Times + Convocação  ← marco mais importante: push notification real
+Times + Convocação ✅ (in-app pronto; push real pendente da conta Firebase)
         ↓
-Quadras (visualização) → Jogos → Quadras (tela de gestão do dono)
+Quadras (agenda/reserva) ✅  →  Jogos (peladas + marketplace) ✅
         ↓
-Notificações push reais (FCM) → Monetização/PRO
+Notificações push reais (FCM) — infra pronta, falta a conta Firebase (6.2)
         ↓
 Frontend definitivo em Flutter (usando fullmatch-core.jsx como referência visual)
+        ↓
+Google Play Console (conta paga, US$ 25 único) — não criada ainda, só quando
+tiver build pronta pra testar (decisão explícita do usuário)
 ```
 
-Checklist de QA definido pra considerar cada fase "pronta":
-- Cadastro: fechar e reabrir o app mantém sessão e dados
-- Convocação: notificação chega mesmo com o app fechado (não só em primeiro plano)
-- RBAC: jogador comum não consegue convocar elenco nem editar time que não é dele
-- Disputa (marketplace): aceitar uma solicitação recusa as outras automaticamente
-- LGPD: usuário consegue revogar consentimento de geolocalização sem quebrar o cadastro
+Backend dos 4 módulos principais (Identity, Teams, Venues, Matches +
+Notifications) está **completo e testado** (fluxo feliz + casos negativos de
+RBAC) local e em produção. O que falta pra ir pra Play Store de verdade:
+Firebase real, telas de gestão de quadra pro dono, e o app Flutter em si.
+
+Checklist de QA usado pra validar cada módulo (aplicado nos 4):
+- Fluxo feliz ponta a ponta local E em produção
+- RBAC negativo: quem não é dono/capitão/organizador recebe 403
+- Regra de negócio específica do domínio (ex: reserva duplicada → 409,
+  aceitar solicitação recusa as outras, lista de espera promove
+  automaticamente quando alguém cancela presença)
 
 ---
 
 ## 9. Decisões em aberto (ainda não resolvidas)
 
 - Login social Apple — mapeado no código, falta conta paga Apple Developer
+- Conta Firebase (Cloud Messaging) — infra pronta, falta criar a conta (6.2)
 - Desenho das telas de gestão de quadra pro dono (separado da visualização do jogador)
 - Nome de domínio próprio ainda não escolhido/comprado
 - CNPJ, Termos de Uso e Política de Privacidade — fora do escopo técnico, status desconhecido
 - Início do frontend Flutter — ainda não começou
+- Conta Google Play Console — adiada de propósito pro momento de ter build pronta
 
 ---
 
