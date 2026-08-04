@@ -1,39 +1,65 @@
-import { useState } from 'react';
-import { Building2, MapPin, Star, Clock, Sun, Car, Beer, Users, Flame, ShoppingBag, DoorOpen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Building2, MapPin, Star, DoorOpen, Car, Beer, Users, ShoppingBag } from 'lucide-react';
 import { Field } from './shared';
-
-const QUADRAS_INICIAIS = [
-  { id: 1, nome: 'Arena Gol de Placa', cidade: 'Santa Maria/RS', preco: 180, rating: 4.8, tags: ['Coberta', 'Iluminação', 'Bar'] },
-  { id: 2, nome: 'Society Vila Nova', cidade: 'Santa Maria/RS', preco: 140, rating: 4.5, tags: ['Iluminação', 'Estacionamento'] },
-];
+import { listarMinhasQuadras, criarQuadra } from '../lib/api';
 
 const CARACTERISTICAS = [
-  { key: 'coberta', label: 'Coberta', icon: DoorOpen },
-  { key: 'iluminacao', label: 'Iluminação', icon: Sun },
-  { key: 'estacionamento', label: 'Estacionamento', icon: Car },
-  { key: 'bar', label: 'Bar', icon: Beer },
-  { key: 'vestiario', label: 'Vestiário', icon: Users },
-  { key: 'churrasqueira', label: 'Churrasqueira', icon: Flame },
-  { key: 'coletes', label: 'Aluguel de coletes', icon: ShoppingBag },
+  { key: 'covered', label: 'Coberta', icon: DoorOpen },
+  { key: 'hasParking', label: 'Estacionamento', icon: Car },
+  { key: 'hasBar', label: 'Bar', icon: Beer },
+  { key: 'hasLockerRoom', label: 'Vestiário', icon: Users },
+  { key: 'rentsVests', label: 'Aluguel de coletes', icon: ShoppingBag },
 ];
 
-// Ainda sem VenuesModule no backend — dados fake, iguais ao protótipo original.
+function tagsDaQuadra(q) {
+  return CARACTERISTICAS.filter((c) => q[c.key]).map((c) => c.label);
+}
+
+// Quadras reais, conectadas na API do DALEH (VenuesModule) — mostra as
+// quadras que o usuário logado é dono. Reserva/agenda ainda não tem tela
+// aqui, é o próximo passo natural quando o app ganhar navegação de verdade.
 export default function Quadras() {
   const [view, setView] = useState('lista');
-  const [quadras, setQuadras] = useState(QUADRAS_INICIAIS);
+  const [quadras, setQuadras] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState('');
+
   const [nome, setNome] = useState('');
-  const [cidade, setCidade] = useState('');
+  const [endereco, setEndereco] = useState('');
   const [preco, setPreco] = useState('');
   const [tags, setTags] = useState([]);
 
+  const carregar = async () => {
+    setCarregando(true);
+    setErro('');
+    try {
+      setQuadras(await listarMinhasQuadras());
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  useEffect(() => {
+    carregar();
+  }, []);
+
   const toggleTag = (key) => setTags((t) => (t.includes(key) ? t.filter((x) => x !== key) : [...t, key]));
 
-  const salvar = () => {
+  const salvar = async () => {
     if (!nome.trim()) return;
-    const labels = CARACTERISTICAS.filter((c) => tags.includes(c.key)).map((c) => c.label);
-    setQuadras([{ id: Date.now(), nome, cidade: cidade || 'Não informado', preco: Number(preco) || 0, rating: 0, tags: labels }, ...quadras]);
-    setNome(''); setCidade(''); setPreco(''); setTags([]);
-    setView('lista');
+    setErro('');
+    try {
+      const dto = { name: nome, address: endereco || undefined, pricePerHour: preco ? Number(preco) : undefined };
+      tags.forEach((k) => { dto[k] = true; });
+      await criarQuadra(dto);
+      setNome(''); setEndereco(''); setPreco(''); setTags([]);
+      setView('lista');
+      await carregar();
+    } catch (err) {
+      setErro(err.message);
+    }
   };
 
   return (
@@ -49,36 +75,41 @@ export default function Quadras() {
         </button>
       </div>
 
+      {erro && <p className="fm-error text-xs mb-3">{erro}</p>}
+
       {view === 'lista' && (
         <div className="space-y-3">
+          {carregando && <p className="text-sm" style={{ color: 'var(--muted)' }}>Carregando…</p>}
+          {!carregando && quadras.length === 0 && (
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>Você ainda não tem quadras cadastradas.</p>
+          )}
           {quadras.map((q) => (
             <div key={q.id} className="fm-card rounded-2xl p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="font-black text-sm flex items-center gap-1.5">
-                    <Building2 size={15} style={{ color: 'var(--turf)' }} /> {q.nome}
+                    <Building2 size={15} style={{ color: 'var(--turf)' }} /> {q.name}
                   </h4>
                   <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: 'var(--muted)' }}>
-                    <MapPin size={12} /> {q.cidade}
+                    <MapPin size={12} /> {q.address || 'Endereço não informado'}
                   </p>
                 </div>
-                {q.rating > 0 && (
+                {q.avgRating > 0 && (
                   <div className="flex items-center gap-1 text-xs font-bold" style={{ color: 'var(--amber)' }}>
-                    <Star size={12} fill="var(--amber)" /> {q.rating}
+                    <Star size={12} fill="var(--amber)" /> {q.avgRating}
                   </div>
                 )}
               </div>
               <div className="flex flex-wrap gap-1.5 mt-3">
-                {q.tags.map((t) => (
+                {tagsDaQuadra(q).map((t) => (
                   <span key={t} className="fm-chip px-2 py-1 rounded-full text-[10px] font-semibold">{t}</span>
                 ))}
               </div>
-              <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
-                <span className="font-black text-sm">R$ {q.preco}<span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>/hora</span></span>
-                <button className="fm-btn-primary rounded-lg px-3 py-1.5 text-xs font-bold flex items-center gap-1">
-                  <Clock size={12} /> Ver agenda
-                </button>
-              </div>
+              {q.pricePerHour && (
+                <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+                  <span className="font-black text-sm">R$ {q.pricePerHour}<span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>/hora</span></span>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -91,9 +122,9 @@ export default function Quadras() {
               value={nome} onChange={(e) => setNome(e.target.value)} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Cidade/UF">
-              <input className="fm-input w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="Cidade/UF"
-                value={cidade} onChange={(e) => setCidade(e.target.value)} />
+            <Field label="Endereço">
+              <input className="fm-input w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="Rua, Cidade/UF"
+                value={endereco} onChange={(e) => setEndereco(e.target.value)} />
             </Field>
             <Field label="Preço/hora (R$)">
               <input className="fm-input w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="180"
