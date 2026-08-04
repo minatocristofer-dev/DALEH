@@ -1,18 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as admin from 'firebase-admin';
 
 // Push de verdade (Firebase Cloud Messaging) — só é ativado se as env vars
-// FIREBASE_* estiverem configuradas. Sem elas, vira no-op com log, pra não
-// travar o resto do app enquanto a conta do Firebase não é criada (ver
-// CLAUDE.md, seção de infraestrutura).
+// FIREBASE_* estiverem configuradas. O SDK do firebase-admin só é carregado
+// (require) quando as credenciais existem: importá-lo sempre, mesmo sem uso,
+// já estourou o limite de memória do plano free do Render (o SDK arrasta
+// gRPC/protobuf, é pesado só de carregar). Sem credenciais, vira no-op com
+// log, pra não travar o resto do app enquanto a conta do Firebase não é
+// criada (ver CLAUDE.md, seção de infraestrutura).
 @Injectable()
 export class FcmService {
   private readonly logger = new Logger(FcmService.name);
-  private app: admin.app.App | null = null;
+  private app: any = null;
 
   constructor() {
     const { FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY } = process.env;
     if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const admin = require('firebase-admin');
       this.app = admin.initializeApp({
         credential: admin.credential.cert({
           projectId: FIREBASE_PROJECT_ID,
@@ -34,6 +38,8 @@ export class FcmService {
   async enviarParaTokens(tokens: string[], titulo: string, corpo: string, data?: Record<string, string>) {
     if (!this.app || tokens.length === 0) return;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const admin = require('firebase-admin');
       await admin.messaging(this.app).sendEachForMulticast({
         tokens,
         notification: { title: titulo, body: corpo },
