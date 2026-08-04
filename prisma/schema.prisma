@@ -48,6 +48,7 @@ model User {
   callUps            CallUp[]
   matchAttendances   MatchAttendance[]
   matchEvents        MatchEvent[]
+  matchesCreated     Match[]             @relation("MatchCreator")
   reviewsGiven       Review[]            @relation("ReviewsGiven")
   reviewsReceived    Review[]            @relation("ReviewsReceived")
   payments           Payment[]
@@ -337,6 +338,8 @@ model Booking {
 
 model Match {
   id              String   @id @default(uuid())
+  createdById     String   @map("created_by")
+  createdBy       User     @relation("MatchCreator", fields: [createdById], references: [id])
   venueId         String?  @map("venue_id")
   venue           Venue?   @relation(fields: [venueId], references: [id])
   modalidadeId    String   @map("modalidade_id")
