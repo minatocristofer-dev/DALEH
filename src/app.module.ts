@@ -5,6 +5,7 @@ import { IdentityModule } from './modules/identity/identity.module';
 import { TeamsModule } from './modules/teams/teams.module';
 import { VenuesModule } from './modules/venues/venues.module';
 import { MatchesModule } from './modules/matches/matches.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -15,7 +16,7 @@ import { HealthController } from './health.controller';
     TeamsModule,
     VenuesModule,
     MatchesModule,
-    // Próximo módulo do plano de implementação: NotificationsModule (push real).
+    NotificationsModule,
   ],
   controllers: [HealthController],
 })

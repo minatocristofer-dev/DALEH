@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
@@ -10,7 +11,10 @@ const PAPEIS_DE_GESTAO = ['CAPITAO', 'VICE_CAPITAO'];
 
 @Injectable()
 export class TeamsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async criarTime(userId: string, dto: CreateTeamDto) {
     return this.prisma.$transaction(async (tx) => {
@@ -128,10 +132,9 @@ export class TeamsService {
       throw new BadRequestException('Esse time não tem nenhum jogador no elenco ainda.');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const convocacoes = [];
-      for (const membro of elenco) {
-        const callUp = await tx.callUp.create({
+    const convocacoes = await this.prisma.$transaction(
+      elenco.map((membro) =>
+        this.prisma.callUp.create({
           data: {
             teamId,
             matchId: dto.matchId,
@@ -140,24 +143,29 @@ export class TeamsService {
             scheduledDate: new Date(dto.scheduledDate),
             scheduledTime: dto.scheduledTime,
           },
-        });
-        await tx.notification.create({
-          data: {
-            userId: membro.userId,
-            type: 'call_up',
-            payload: {
-              callUpId: callUp.id,
-              teamId,
-              venueNameSnapshot: dto.venueNameSnapshot,
-              scheduledDate: dto.scheduledDate,
-              scheduledTime: dto.scheduledTime,
-            },
-          },
-        });
-        convocacoes.push(callUp);
-      }
-      return convocacoes;
-    });
+        }),
+      ),
+    );
+
+    // Notificação + push são melhor-esforço, fora da transação — um push que
+    // falha não pode desfazer a convocação que já foi criada.
+    for (const callUp of convocacoes) {
+      await this.notifications.notificar(
+        callUp.userId,
+        'call_up',
+        {
+          callUpId: callUp.id,
+          teamId,
+          venueNameSnapshot: dto.venueNameSnapshot,
+          scheduledDate: dto.scheduledDate,
+          scheduledTime: dto.scheduledTime,
+        },
+        'Convocação',
+        `Você foi convocado pra ${dto.venueNameSnapshot} em ${dto.scheduledDate} às ${dto.scheduledTime}`,
+      );
+    }
+
+    return convocacoes;
   }
 
   async listarConvocacoesDoTime(teamId: string, userId: string) {

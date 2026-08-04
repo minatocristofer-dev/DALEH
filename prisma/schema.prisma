@@ -53,6 +53,7 @@ model User {
   reviewsReceived    Review[]            @relation("ReviewsReceived")
   payments           Payment[]
   notifications      Notification[]
+  deviceTokens       DeviceToken[]
 
   @@map("users")
 }
@@ -459,4 +460,17 @@ model Notification {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("notifications")
+}
+
+// Token de push (Firebase Cloud Messaging) de um dispositivo do usuário —
+// um usuário pode ter vários (celular + navegador, por ex).
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String   // web | android | ios
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("device_tokens")
 }
