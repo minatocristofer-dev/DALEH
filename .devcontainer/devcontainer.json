@@ -1,6 +1,11 @@
 {
   "name": "DALEH Flutter",
   "image": "ghcr.io/cirruslabs/flutter:stable",
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
+    }
+  },
   "forwardPorts": [8080],
   "portsAttributes": {
     "8080": {
