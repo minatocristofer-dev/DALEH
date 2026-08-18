@@ -1,0 +1,17 @@
+{
+  "name": "DALEH Flutter",
+  "image": "ghcr.io/cirruslabs/flutter:stable",
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Flutter web preview",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "flutter config --enable-web && flutter doctor -v",
+  "customizations": {
+    "vscode": {
+      "extensions": ["Dart-Code.flutter", "Dart-Code.dart-code"]
+    }
+  }
+}
