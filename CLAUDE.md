@@ -58,7 +58,7 @@ em `C:\Users\minat\Downloads\FullMatch_Arquitetura_Produto.md` e
 | Host do servidor | **Render** (Web Service free, 512MB RAM, deploy automático do GitHub) — `https://daleh-fx5c.onrender.com/v1` | ✅ No ar |
 | Auth | JWT próprio (email/senha) + login social Google via Supabase Auth (`POST /auth/social`) | Google pronto; Apple mapeado no código mas não habilitado (exige conta paga Apple Developer) |
 | Push notifications | Firebase Cloud Messaging | Infra pronta no código (`NotificationsModule`), **desativada** até existir uma conta Firebase — ver seção 6.2 |
-| Frontend definitivo | **Flutter** (decisão tomada, ainda não iniciado) | Não iniciado |
+| Frontend definitivo | **Flutter**, pasta `daleh-app/` neste mesmo repo | 🟡 Iniciado — Login/Cadastro/Perfil funcionando de ponta a ponta contra a API real (ver seção 6.2) |
 | Demo web temporário | React + Vite + Tailwind, pasta `daleh-web/` neste mesmo repo — `https://daleh-web.onrender.com` | Ver seção 6.1 — **não é o frontend de produção**, é só pra testar/mostrar o que já funciona |
 | Protótipo de UX/visual original | React + Tailwind (artifact do Claude, arquivo `fullmatch-core.jsx` em Downloads) | Referência de design pro Flutter — ver seção 6 |
 
@@ -71,6 +71,17 @@ boot com "JavaScript heap out of memory". Corrigido usando `require()`
 dentro do `if` que só roda quando as credenciais existem (`fcm.service.ts`),
 em vez de `import` estático no topo do arquivo. Ao adicionar dependências
 pesadas no futuro, considerar lazy-load do mesmo jeito.
+
+**Cuidado — Supabase free tier pausa por inatividade**: depois de vários dias
+sem nenhuma chamada, o projeto no Supabase entra em estado `INACTIVE` (o
+Postgres é desligado). O sintoma é o backend crashar no boot com
+`PrismaClientInitializationError: FATAL: (ENOTFOUND) tenant/user ... not found`
+— isso **não é bug de código**, é o banco pausado. Reativar via Management
+API: `POST https://api.supabase.com/v1/projects/{ref}/restore` (leva uns
+10-15 min pra voltar a `ACTIVE_HEALTHY`). Depois de reativar, disparar um
+deploy novo no Render (o deploy que rodou enquanto o banco tava caindo
+falha/trava). Isso vai continuar acontecendo entre sessões distantes até o
+projeto ter tráfego real ou virar um plano pago.
 
 ---
 
@@ -130,7 +141,7 @@ privado tipo `exigirDono`/`exigirCapitaoOuDono` em cada service.
 - **`src/modules/notifications/`** — `NotificationsController`
   (`/notifications/*`: inbox in-app, marcar como lida, registrar token de
   push) + `FcmService` (push real via Firebase, **atualmente em modo
-  no-op** — ver seção 6.2).
+  no-op** — ver seção 6.3).
 - `src/common/decorators/current-user.decorator.ts` — `@CurrentUser()`,
   extrai `{id, email}` do JWT validado, usado em todo controller autenticado.
 - `src/common/guards/roles.guard.ts` + `@Roles()` — RBAC de papel *global*
@@ -183,7 +194,64 @@ só falta a tela). Avisos/inbox de notificação também tem API pronta
 **Propósito**: só validar/demonstrar o que já está funcionando ponta a ponta,
 enquanto o Flutter (frontend definitivo) não começa. Não vira produto.
 
-### 6.2 Push notifications (Firebase) — infra pronta, falta a conta
+### 6.2 App Flutter (`daleh-app/`) — frontend definitivo, em andamento
+
+Desenvolvido via **GitHub Codespaces** (não local — o disco da máquina de
+desenvolvimento não tinha espaço pro SDK do Flutter + Android SDK). Setup:
+
+- `.devcontainer/devcontainer.json` no repo: imagem base padrão do Codespaces
+  (`mcr.microsoft.com/devcontainers/base:ubuntu-24.04`, **não** uma imagem
+  Flutter pronta de terceiros — `ghcr.io/cirruslabs/flutter` quebrava o SSH
+  do `gh codespace ssh`, aparentemente incompatível com a injeção do agente
+  de conexão do Codespaces) + feature `ghcr.io/devcontainers/features/sshd:1`
+  (obrigatória pra `gh codespace ssh` funcionar) + `postCreateCommand` que
+  roda `.devcontainer/install-flutter.sh` (clona `flutter/flutter` stable via
+  git e faz o precache do target web).
+- Operado via `gh` CLI local (`gh codespace create/ssh/ports/rebuild`).
+  **Importante**: `gh codespace rebuild` reconstrói o container mas **não
+  faz `git pull`** — se você commitar uma correção no devcontainer, precisa
+  deletar e criar um Codespace novo (`gh codespace delete` + `create`) pra
+  garantir que o `git_status.behind` seja 0, senão o rebuild usa o código
+  antigo. Rebuild "normal" também pode travar/demorar muito às vezes — deletar
+  e recriar do zero costuma ser mais rápido que insistir.
+- Fluxo de trabalho: os arquivos Dart são escritos **localmente** neste
+  checkout (mais rápido que editar via SSH com heredocs), commitados e
+  enviados pro GitHub, e só então puxados (`git pull`) e compilados dentro
+  do Codespace.
+- **Testar visualmente**: `flutter run -d web-server` (modo debug) é lento
+  demais através do túnel do Codespaces (carrega ~300 arquivos JS
+  separados). Em vez disso: `flutter build web` (build de produção, poucos
+  arquivos otimizados) + servir a pasta `build/web` com `dhttpd` (instalado
+  via `dart pub global activate dhttpd` — o container não tem `python3`).
+  Porta 8080 exposta publicamente via `gh codespace ports visibility
+  8080:public`.
+- **Automação de teste (Playwright)**: o Flutter web usa o renderer
+  CanvasKit, que desenha tudo num `<canvas>` — **não existem elementos DOM
+  reais** pra usar seletores normais do Playwright (`getByLabel`,
+  `getByText` em botões, etc. não funcionam). O jeito que funciona é clicar
+  por **coordenadas de pixel** (`page.mouse.click(x, y)` + `page.keyboard.type()`),
+  descobrindo as posições via screenshot antes de cada campo.
+- Dependências: `flutter_riverpod` (estado), `http` (cliente da API),
+  `flutter_secure_storage` (token), `supabase_flutter` (login social Google
+  — mesmo padrão de token trocado por `POST /auth/social` que o `daleh-web`
+  já usa, **não** dá pra mandar o ID token bruto do Google direto pro
+  backend, o backend espera um token de sessão do Supabase).
+- Estrutura: `lib/theme/` (paleta portada do `fullmatch-core.jsx`),
+  `lib/core/` (`api_client.dart`, `auth_storage.dart`, `supabase_config.dart`),
+  `lib/features/auth/` (Login, Cadastro 3 passos, `auth_controller.dart` com
+  Riverpod), `lib/features/perfil/`.
+- **O que já funciona, testado ponta a ponta contra a API de produção**:
+  cadastro completo (3 passos) e login por e-mail/senha, ambos terminando na
+  tela de Perfil com sessão válida. Login social (Google) está com o código
+  escrito (`AuthController.entrarComGoogle()`) mas **não testado
+  interativamente** (precisa de uma conta Google real fazendo o OAuth, que
+  não é algo que dá pra automatizar sozinho — mesma limitação de quando
+  validamos isso no `daleh-web`).
+- **Ainda não portado pro Flutter**: Times, Quadras, Jogos, Notificações —
+  só existem no `daleh-web`. Seguir a mesma ordem módulo-por-módulo já usada
+  no backend.
+
+### 6.3 Push notifications (Firebase) — infra pronta, falta a conta
 
 `NotificationsModule`/`FcmService` já sabem enviar push de verdade, mas ficam
 em modo no-op até existirem estas env vars no Render: `FIREBASE_PROJECT_ID`,
@@ -233,9 +301,10 @@ Times + Convocação ✅ (in-app pronto; push real pendente da conta Firebase)
         ↓
 Quadras (agenda/reserva) ✅  →  Jogos (peladas + marketplace) ✅
         ↓
-Notificações push reais (FCM) — infra pronta, falta a conta Firebase (6.2)
+Notificações push reais (FCM) — infra pronta, falta a conta Firebase (6.3)
         ↓
-Frontend definitivo em Flutter (usando fullmatch-core.jsx como referência visual)
+Frontend definitivo em Flutter — 🟡 EM ANDAMENTO (Login/Cadastro/Perfil prontos,
+falta Times/Quadras/Jogos/Notificações — ver seção 6.2)
         ↓
 Google Play Console (conta paga, US$ 25 único) — não criada ainda, só quando
 tiver build pronta pra testar (decisão explícita do usuário)
@@ -243,8 +312,10 @@ tiver build pronta pra testar (decisão explícita do usuário)
 
 Backend dos 4 módulos principais (Identity, Teams, Venues, Matches +
 Notifications) está **completo e testado** (fluxo feliz + casos negativos de
-RBAC) local e em produção. O que falta pra ir pra Play Store de verdade:
-Firebase real, telas de gestão de quadra pro dono, e o app Flutter em si.
+RBAC) local e em produção. O app Flutter já fala com essa API de verdade pra
+Login/Cadastro/Perfil. O que falta pra ir pra Play Store: Firebase real,
+telas de gestão de quadra pro dono, portar Times/Quadras/Jogos pro Flutter, e
+gerar o build assinado (`flutter build appbundle`).
 
 Checklist de QA usado pra validar cada módulo (aplicado nos 4):
 - Fluxo feliz ponta a ponta local E em produção
@@ -258,12 +329,17 @@ Checklist de QA usado pra validar cada módulo (aplicado nos 4):
 ## 9. Decisões em aberto (ainda não resolvidas)
 
 - Login social Apple — mapeado no código, falta conta paga Apple Developer
-- Conta Firebase (Cloud Messaging) — infra pronta, falta criar a conta (6.2)
+- Login social Google no **Flutter** — código escrito, mas nunca testado
+  interativamente (precisa de OAuth real com conta Google)
+- Conta Firebase (Cloud Messaging) — infra pronta, falta criar a conta (6.3)
 - Desenho das telas de gestão de quadra pro dono (separado da visualização do jogador)
 - Nome de domínio próprio ainda não escolhido/comprado
 - CNPJ, Termos de Uso e Política de Privacidade — fora do escopo técnico, status desconhecido
-- Início do frontend Flutter — ainda não começou
+- Times/Quadras/Jogos/Notificações ainda não portados pro app Flutter (só existem no `daleh-web`)
 - Conta Google Play Console — adiada de propósito pro momento de ter build pronta
+- Ambiente de desenvolvimento Flutter é um GitHub Codespace (não local, ver
+  6.2) — precisa ser recriado (`gh codespace create`) quando expirar/for
+  deletado; não é permanente
 
 ---
 
