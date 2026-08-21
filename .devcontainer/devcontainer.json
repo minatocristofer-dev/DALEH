@@ -1,6 +1,11 @@
 {
   "name": "DALEH Flutter",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
+    }
+  },
   "postCreateCommand": "bash .devcontainer/install-flutter.sh",
   "forwardPorts": [8080],
   "portsAttributes": {
