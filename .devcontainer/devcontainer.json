@@ -1,11 +1,7 @@
 {
   "name": "DALEH Flutter",
-  "image": "ghcr.io/cirruslabs/flutter:stable",
-  "features": {
-    "ghcr.io/devcontainers/features/sshd:1": {
-      "version": "latest"
-    }
-  },
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "postCreateCommand": "bash .devcontainer/install-flutter.sh",
   "forwardPorts": [8080],
   "portsAttributes": {
     "8080": {
@@ -13,7 +9,6 @@
       "onAutoForward": "notify"
     }
   },
-  "postCreateCommand": "flutter config --enable-web && flutter doctor -v",
   "customizations": {
     "vscode": {
       "extensions": ["Dart-Code.flutter", "Dart-Code.dart-code"]
