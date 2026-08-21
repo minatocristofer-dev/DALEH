@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_storage.dart';
 import '../../core/supabase_config.dart';
