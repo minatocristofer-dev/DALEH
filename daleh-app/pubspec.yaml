@@ -35,6 +35,15 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # Gerenciamento de estado
+  flutter_riverpod: ^2.6.1
+  # Cliente HTTP pra falar com a API do DALEH
+  http: ^1.2.2
+  # Guardar o JWT de forma segura no dispositivo
+  flutter_secure_storage: ^9.2.2
+  # Login social (Google) via Supabase Auth — mesmo padrão já validado no daleh-web
+  supabase_flutter: ^2.8.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
