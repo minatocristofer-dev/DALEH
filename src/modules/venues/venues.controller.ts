@@ -7,12 +7,15 @@ import { UpdateVenueDto } from './dto/update-venue.dto';
 import { CreateSlotDto } from './dto/create-slot.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
+// Visualizar/explorar quadras é público (não exige login): listar, detalhe e
+// disponibilidade. Só ações que alteram estado (criar/editar quadra, slots,
+// reservar) exigem JWT — por isso o guard é aplicado por rota, não na classe.
 @Controller('venues')
-@UseGuards(AuthGuard('jwt'))
 export class VenuesController {
   constructor(private venuesService: VenuesService) {}
 
   @Post()
+  @UseGuards(AuthGuard('jwt'))
   criar(@CurrentUser() user: UsuarioAutenticado, @Body() dto: CreateVenueDto) {
     return this.venuesService.criarQuadra(user.id, dto);
   }
@@ -23,6 +26,7 @@ export class VenuesController {
   }
 
   @Get('mine')
+  @UseGuards(AuthGuard('jwt'))
   minhas(@CurrentUser() user: UsuarioAutenticado) {
     return this.venuesService.minhasQuadras(user.id);
   }
@@ -33,16 +37,19 @@ export class VenuesController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'))
   editar(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado, @Body() dto: UpdateVenueDto) {
     return this.venuesService.editarQuadra(id, user.id, dto);
   }
 
   @Post(':id/slots')
+  @UseGuards(AuthGuard('jwt'))
   criarSlot(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado, @Body() dto: CreateSlotDto) {
     return this.venuesService.criarSlot(id, user.id, dto);
   }
 
   @Delete(':id/slots/:slotId')
+  @UseGuards(AuthGuard('jwt'))
   removerSlot(@Param('id') id: string, @Param('slotId') slotId: string, @CurrentUser() user: UsuarioAutenticado) {
     return this.venuesService.removerSlot(id, slotId, user.id);
   }
@@ -52,7 +59,14 @@ export class VenuesController {
     return this.venuesService.disponibilidade(id, date);
   }
 
+  @Get(':id/bookings')
+  @UseGuards(AuthGuard('jwt'))
+  reservasDaQuadra(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado) {
+    return this.venuesService.reservasDaQuadra(id, user.id);
+  }
+
   @Post(':id/slots/:slotId/bookings')
+  @UseGuards(AuthGuard('jwt'))
   reservar(
     @Param('id') id: string,
     @Param('slotId') slotId: string,

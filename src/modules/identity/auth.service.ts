@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthProvider } from '@prisma/client';
@@ -149,5 +149,109 @@ export class AuthService {
   private gerarSessao(userId: string, email: string) {
     const accessToken = this.jwt.sign({ sub: userId, email });
     return { accessToken };
+  }
+
+  // Monta o perfil completo (com e-mail) de qualquer userId — usado tanto
+  // por `me()` (próprio usuário, a partir do JWT) quanto por
+  // `perfilPublico()` (Fase 7, que remove o e-mail antes de devolver).
+  // Estatísticas são sempre calculadas na hora a partir de dados reais
+  // (MatchAttendance, MatchEvent, CallUp) — nada é lido de `PlayerStats`,
+  // porque essa tabela nasce zerada no cadastro e nunca é atualizada por
+  // nenhuma partida (ver Fase 6, auditoria). Vitórias/empates/derrotas não
+  // entram aqui porque `Match` não guarda placar — não dá pra calcular isso
+  // com os dados atuais.
+  // Idade (Fase 9) — sempre calculada a partir de `User.birthDate`, nunca
+  // armazenada como número fixo (assim ela "atualiza sozinha" no aniversário
+  // do jogador). `birthDate` já existia no schema desde o início, mas
+  // nenhum fluxo de cadastro/edição de perfil o preenche ainda — por isso
+  // continua nulo pra praticamente todo mundo hoje; isso não foi inventado
+  // nem corrigido nesta fase (fora do escopo — ver relatório).
+  private calcularIdade(birthDate: Date | null): number | null {
+    if (!birthDate) return null;
+    const hoje = new Date();
+    let idade = hoje.getUTCFullYear() - birthDate.getUTCFullYear();
+    const aindaNaoFezAniversarioEsteAno =
+      hoje.getUTCMonth() < birthDate.getUTCMonth() ||
+      (hoje.getUTCMonth() === birthDate.getUTCMonth() && hoje.getUTCDate() < birthDate.getUTCDate());
+    if (aindaNaoFezAniversarioEsteAno) idade--;
+    return idade;
+  }
+
+  private async montarPerfil(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        playerProfile: true,
+        playerModalidades: { include: { modalidade: true } },
+      },
+    });
+    if (!user) throw new NotFoundException('Usuário não encontrado.');
+
+    const memberships = await this.prisma.teamMember.findMany({
+      where: { userId },
+      include: { team: true },
+    });
+
+    const [jogosDisputados, gols, assistencias, cartoesAmarelos, cartoesVermelhos, mvp, convocacoes] =
+      await Promise.all([
+        // "Jogos disputados" só conta partida que já aconteceu de fato:
+        // exclui cancelada e exclui data futura (ver Fase 7, Parte 6 —
+        // Match não tem nenhum status "auto-atualizado", então exigir
+        // status 'finished' subcontaria partidas reais que o criador nunca
+        // marcou manualmente; futura + não-cancelada é o critério pedido).
+        this.prisma.matchAttendance.count({
+          where: {
+            userId,
+            status: 'confirmed',
+            match: { status: { not: 'cancelled' }, scheduledAt: { lte: new Date() } },
+          },
+        }),
+        this.prisma.matchEvent.count({ where: { userId, eventType: 'goal' } }),
+        this.prisma.matchEvent.count({ where: { userId, eventType: 'assist' } }),
+        this.prisma.matchEvent.count({ where: { userId, eventType: 'yellow' } }),
+        this.prisma.matchEvent.count({ where: { userId, eventType: 'red' } }),
+        this.prisma.matchEvent.count({ where: { userId, eventType: 'mvp' } }),
+        this.prisma.callUp.count({ where: { userId } }),
+      ]);
+
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      city: user.city,
+      state: user.state,
+      dominantFoot: user.playerProfile?.dominantFoot ?? null,
+      bio: user.playerProfile?.bio ?? null,
+      idade: this.calcularIdade(user.birthDate),
+      modalidades: user.playerModalidades.map((pm) => ({
+        modalidade: pm.modalidade.key,
+        label: pm.modalidade.label,
+        posicaoPrincipal: pm.posicaoPrincipal,
+        posicaoSecundaria: pm.posicaoSecundaria,
+      })),
+      estatisticas: { jogosDisputados, gols, assistencias, cartoesAmarelos, cartoesVermelhos, mvp, convocacoes },
+      timesAtuais: memberships
+        .filter((m) => m.status === 'active')
+        .map((m) => ({ id: m.team.id, name: m.team.name, crestUrl: m.team.crestUrl, papel: m.papel })),
+      timesAnteriores: memberships
+        .filter((m) => m.status === 'removed')
+        .map((m) => ({ id: m.team.id, name: m.team.name, crestUrl: m.team.crestUrl })),
+    };
+  }
+
+  // Dados do próprio usuário logado — o JWT só carrega {sub, email} (ver
+  // JwtStrategy.validate), então esse é o único jeito do app conhecer
+  // nome/avatar/posição/estatísticas de quem está logado.
+  async me(userId: string) {
+    return this.montarPerfil(userId);
+  }
+
+  // Perfil público (Fase 7) — qualquer usuário autenticado pode ver o de
+  // qualquer outro (sem exigir time/jogo em comum, por decisão explícita do
+  // prompt desta fase). Mesmo formato de `me()`, só sem o e-mail.
+  async perfilPublico(userId: string) {
+    const { email: _email, ...perfilPublico } = await this.montarPerfil(userId);
+    return perfilPublico;
   }
 }

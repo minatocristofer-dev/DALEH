@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sem isso, builds de release/profile não conseguem fazer nenhuma
+         chamada de rede — só existia nos manifests de debug/profile, que não
+         entram no build de release/AAB. O app inteiro depende de HTTP pra
+         falar com a API do DALEH, então essa permissão é obrigatória aqui. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="daleh_app"
         android:name="${applicationName}"

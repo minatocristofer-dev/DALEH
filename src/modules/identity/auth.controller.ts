@@ -1,4 +1,6 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { CurrentUser, UsuarioAutenticado } from '../../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -27,5 +29,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   social(@Body() dto: SocialLoginDto) {
     return this.authService.socialLogin(dto);
+  }
+
+  // GET /v1/auth/me — único jeito do app saber quem é o usuário logado além
+  // do e-mail já presente no JWT (ver Fase 6, auditoria: não existia nenhum
+  // endpoint que devolvesse os dados do próprio usuário).
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  me(@CurrentUser() user: UsuarioAutenticado) {
+    return this.authService.me(user.id);
   }
 }

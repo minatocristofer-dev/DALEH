@@ -160,8 +160,9 @@ class _CadastroScreenState extends ConsumerState<CadastroScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text('Já tem conta?', style: TextStyle(color: DalehColors.muted, fontSize: 12)),
                 TextButton(

@@ -72,8 +72,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: const Text('Entrar com Google'),
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text('Ainda não tem conta?', style: TextStyle(color: DalehColors.muted, fontSize: 12)),
                 TextButton(

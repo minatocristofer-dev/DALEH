@@ -36,8 +36,12 @@ export class NotificationsService {
 
   // Usado pelos outros módulos (ex: convocação de time) — grava a notificação
   // in-app e, se o Firebase estiver configurado, também dispara o push real.
-  async notificar(userId: string, type: string, payload: Prisma.InputJsonValue, titulo: string, corpo: string) {
-    const notificacao = await this.prisma.notification.create({ data: { userId, type, payload } });
+  // titulo/corpo são persistidos dentro do próprio payload (não existe coluna
+  // dedicada no schema) pra inbox conseguir exibir texto pronto, sem o
+  // Flutter precisar reconstruir a mensagem a partir do `type`.
+  async notificar(userId: string, type: string, payload: Record<string, unknown>, titulo: string, corpo: string) {
+    const payloadCompleto: Prisma.InputJsonValue = { ...payload, titulo, corpo };
+    const notificacao = await this.prisma.notification.create({ data: { userId, type, payload: payloadCompleto } });
 
     if (this.fcm.ativo) {
       const tokens = await this.prisma.deviceToken.findMany({ where: { userId }, select: { token: true } });

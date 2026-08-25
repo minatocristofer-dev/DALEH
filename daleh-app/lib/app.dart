@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/cadastro_screen.dart';
-import 'features/perfil/perfil_screen.dart';
+import 'features/home_shell.dart';
 import 'theme/daleh_theme.dart';
 
 class DalehApp extends StatelessWidget {
@@ -36,6 +36,13 @@ class _RaizState extends ConsumerState<_Raiz> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
 
+    // Logado: o app inteiro vira a navegação principal (bottom nav com
+    // Times, Jogos, etc.) — não faz sentido dentro do card centralizado
+    // usado só pras telas de autenticação.
+    if (!auth.verificandoSessao && auth.logado) {
+      return const HomeShell();
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -50,12 +57,10 @@ class _RaizState extends ConsumerState<_Raiz> {
                   const SizedBox(height: 16),
                   if (auth.verificandoSessao)
                     const Center(child: CircularProgressIndicator(color: DalehColors.turf))
-                  else if (!auth.logado)
+                  else
                     telaAuth == _TelaAuth.login
                         ? LoginScreen(onIrParaCadastro: () => setState(() => telaAuth = _TelaAuth.cadastro))
-                        : CadastroScreen(onIrParaLogin: () => setState(() => telaAuth = _TelaAuth.login))
-                  else
-                    const PerfilScreen(),
+                        : CadastroScreen(onIrParaLogin: () => setState(() => telaAuth = _TelaAuth.login)),
                 ],
               ),
             ),

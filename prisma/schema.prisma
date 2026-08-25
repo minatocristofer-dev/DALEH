@@ -168,6 +168,7 @@ model Team {
   matchesHome     Match[]              @relation("MatchHomeTeam")
   matchesAway     Match[]              @relation("MatchAwayTeam")
   championships   ChampionshipTeam[]
+  matchEvents     MatchEvent[]
 
   @@map("teams")
 }
@@ -227,6 +228,8 @@ model TeamChallenge {
   desiredLevel   String          @map("desired_level") // iniciante | intermediario | avancado
   status         ChallengeStatus @default(ABERTA)
   opponentTeamId String?         @map("opponent_team_id")
+  matchId        String?         @unique @map("match_id") // preenchido quando o desafio é aceito (ver TeamChallengesService.aceitar)
+  match          Match?          @relation(fields: [matchId], references: [id])
   createdAt      DateTime        @default(now()) @map("created_at")
 
   requests       ChallengeRequest[]
@@ -359,6 +362,7 @@ model Match {
   attendance      MatchAttendance[]
   events          MatchEvent[]
   callUps         CallUp[]
+  challenge       TeamChallenge?
 
   @@map("matches")
 }
@@ -371,6 +375,7 @@ model MatchAttendance {
   user       User     @relation(fields: [userId], references: [id])
   status     String   @default("confirmed") // confirmed | waitlist | declined
   checkedInAt DateTime? @map("checked_in_at")
+  createdAt  DateTime @default(now()) @map("created_at") // garante ordem de chegada na fila de espera
 
   @@unique([matchId, userId])
   @@map("match_attendance")
@@ -382,8 +387,16 @@ model MatchEvent {
   match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
   userId    String   @map("user_id")
   user      User     @relation(fields: [userId], references: [id])
+  // Time do jogador CONGELADO no momento do evento (Fase 9) — nunca
+  // recalculado a partir do TeamMember atual, exatamente pra não deixar o
+  // placar histórico mudar se o jogador sair do time depois. Nulo em
+  // eventos de partida avulsa (sem times) ou em eventos antigos que não
+  // puderam ser determinados com segurança na migração de dados.
+  teamId    String?  @map("team_id")
+  team      Team?    @relation(fields: [teamId], references: [id])
   eventType String   @map("event_type") // goal | assist | yellow | red | mvp
   minute    Int?
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("match_events")
 }

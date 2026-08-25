@@ -43,6 +43,10 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   # Login social (Google) via Supabase Auth — mesmo padrão já validado no daleh-web
   supabase_flutter: ^2.8.0
+  # Compartilhar o Player Card via mecanismo nativo do SO (folha de compartilhamento do Android/iOS)
+  share_plus: ^10.1.4
+  # Salvar a imagem do Player Card num arquivo temporário antes de compartilhar
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

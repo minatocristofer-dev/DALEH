@@ -1,16 +1,29 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PAPEIS_DE_GESTAO_DE_TIME, TeamAuthorizationService } from '../../common/authorization/team-authorization.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateTeamChallengeDto } from './dto/create-team-challenge.dto';
 import { CreateChallengeRequestDto } from './dto/create-challenge-request.dto';
 
-const PAPEIS_DE_GESTAO = ['CAPITAO', 'VICE_CAPITAO'];
+// Combina a data (meia-noite) do desafio com o horário em texto ("20:00")
+// num único DateTime pro Match criado a partir do aceite.
+function combinarDataHora(data: Date, horaStr: string): Date {
+  const [h, m] = horaStr.split(':').map((v) => parseInt(v, 10));
+  const combinado = new Date(data);
+  combinado.setUTCHours(Number.isFinite(h) ? h : 0, Number.isFinite(m) ? m : 0, 0, 0);
+  return combinado;
+}
 
 @Injectable()
 export class TeamChallengesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private teamAuth: TeamAuthorizationService,
+    private notifications: NotificationsService,
+  ) {}
 
   async criarDesafio(userId: string, dto: CreateTeamChallengeDto) {
-    await this.exigirCapitaoOuDono(dto.teamId, userId);
+    await this.teamAuth.exigirCapitaoOuDono(dto.teamId, userId);
 
     const modalidade = await this.prisma.modalidade.findUnique({ where: { key: dto.modalidade } });
     if (!modalidade) throw new BadRequestException('Modalidade inválida.');
@@ -48,29 +61,49 @@ export class TeamChallengesService {
       throw new BadRequestException('Seu time não pode solicitar o próprio desafio.');
     }
 
-    await this.exigirCapitaoOuDono(dto.requestingTeamId, userId);
+    await this.teamAuth.exigirCapitaoOuDono(dto.requestingTeamId, userId);
 
     const existente = await this.prisma.challengeRequest.findUnique({
       where: { challengeId_requestingTeamId: { challengeId, requestingTeamId: dto.requestingTeamId } },
     });
     if (existente) throw new ConflictException('Seu time já solicitou esse desafio.');
 
-    return this.prisma.challengeRequest.create({
+    const solicitacaoCriada = await this.prisma.challengeRequest.create({
       data: { challengeId, requestingTeamId: dto.requestingTeamId },
     });
+
+    // Melhor-esforço, fora do caminho principal.
+    const gestoresOrganizador = await this.teamAuth.obterGestoresDoTime(desafio.teamId);
+    for (const destinatarioId of gestoresOrganizador) {
+      await this.notifications.notificar(
+        destinatarioId,
+        'challenge_request_received',
+        { challengeId, requestId: solicitacaoCriada.id },
+        'Novo pedido de desafio',
+        'Um time quer aceitar seu desafio. Dá uma olhada nas solicitações.',
+      );
+    }
+
+    return solicitacaoCriada;
   }
 
   async aceitar(challengeId: string, requestId: string, userId: string) {
     const desafio = await this.prisma.teamChallenge.findUnique({ where: { id: challengeId } });
     if (!desafio) throw new NotFoundException('Desafio não encontrado.');
-    await this.exigirCapitaoOuDono(desafio.teamId, userId);
+    await this.teamAuth.exigirCapitaoOuDono(desafio.teamId, userId);
 
     const solicitacao = await this.prisma.challengeRequest.findUnique({ where: { id: requestId } });
     if (!solicitacao || solicitacao.challengeId !== challengeId) {
       throw new NotFoundException('Solicitação não encontrada.');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    // Precisamos saber quem mais tinha solicitado (pra notificar a recusa em
+    // cascata) antes da transação mudar o status de todo mundo.
+    const outrasSolicitacoes = await this.prisma.challengeRequest.findMany({
+      where: { challengeId, id: { not: requestId } },
+    });
+
+    const { desafioAtualizado, match } = await this.prisma.$transaction(async (tx) => {
       await tx.challengeRequest.update({ where: { id: requestId }, data: { status: 'ACEITA' } });
       // Todas as outras solicitações do mesmo desafio são recusadas automaticamente —
       // evita dois times "confirmados" pro mesmo horário.
@@ -78,11 +111,58 @@ export class TeamChallengesService {
         where: { challengeId, id: { not: requestId } },
         data: { status: 'RECUSADA' },
       });
-      return tx.teamChallenge.update({
-        where: { id: challengeId },
-        data: { status: 'CONFIRMADA', opponentTeamId: solicitacao.requestingTeamId },
+
+      // Aceitar o desafio cria o Jogo de verdade — Match com os dois times já
+      // vinculados, herdando quadra/modalidade/horário do próprio desafio.
+      const matchCriado = await tx.match.create({
+        data: {
+          createdById: userId,
+          venueId: desafio.venueId,
+          modalidadeId: desafio.modalidadeId,
+          homeTeamId: desafio.teamId,
+          awayTeamId: solicitacao.requestingTeamId,
+          scheduledAt: combinarDataHora(desafio.scheduledDate, desafio.scheduledTime),
+          visibility: 'public',
+        },
       });
+
+      const teamChallengeAtualizado = await tx.teamChallenge.update({
+        where: { id: challengeId },
+        data: { status: 'CONFIRMADA', opponentTeamId: solicitacao.requestingTeamId, matchId: matchCriado.id },
+      });
+
+      return { desafioAtualizado: teamChallengeAtualizado, match: matchCriado };
     });
+
+    // Notificações, melhor-esforço, fora da transação.
+    const gestoresEnvolvidos = [
+      ...(await this.teamAuth.obterGestoresDoTime(desafio.teamId)),
+      ...(await this.teamAuth.obterGestoresDoTime(solicitacao.requestingTeamId)),
+    ];
+    for (const destinatarioId of gestoresEnvolvidos) {
+      await this.notifications.notificar(
+        destinatarioId,
+        'challenge_accepted',
+        { challengeId, matchId: match.id },
+        'Desafio confirmado',
+        'Seu desafio foi confirmado! A partida já está marcada.',
+      );
+    }
+
+    for (const outra of outrasSolicitacoes) {
+      const gestoresRecusados = await this.teamAuth.obterGestoresDoTime(outra.requestingTeamId);
+      for (const destinatarioId of gestoresRecusados) {
+        await this.notifications.notificar(
+          destinatarioId,
+          'challenge_request_declined',
+          { challengeId },
+          'Solicitação recusada',
+          'Sua solicitação pra esse desafio foi recusada — o organizador confirmou com outro time.',
+        );
+      }
+    }
+
+    return desafioAtualizado;
   }
 
   async meusDesafios(userId: string) {
@@ -107,24 +187,10 @@ export class TeamChallengesService {
     const [times, membros] = await Promise.all([
       this.prisma.team.findMany({ where: { ownerId: userId }, select: { id: true } }),
       this.prisma.teamMember.findMany({
-        where: { userId, status: 'active', papel: { in: PAPEIS_DE_GESTAO as any } },
+        where: { userId, status: 'active', papel: { in: PAPEIS_DE_GESTAO_DE_TIME as any } },
         select: { teamId: true },
       }),
     ]);
     return Array.from(new Set([...times.map((t) => t.id), ...membros.map((m) => m.teamId)]));
-  }
-
-  private async exigirCapitaoOuDono(teamId: string, userId: string) {
-    const time = await this.prisma.team.findUnique({ where: { id: teamId } });
-    if (!time) throw new NotFoundException('Time não encontrado.');
-    if (time.ownerId === userId) return time;
-
-    const membro = await this.prisma.teamMember.findUnique({
-      where: { teamId_userId: { teamId, userId } },
-    });
-    if (!membro || membro.status !== 'active' || !PAPEIS_DE_GESTAO.includes(membro.papel)) {
-      throw new ForbiddenException('Você precisa ser capitão ou dono deste time pra fazer isso.');
-    }
-    return time;
   }
 }
