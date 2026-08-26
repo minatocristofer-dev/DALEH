@@ -47,9 +47,17 @@ class InicioScreen extends ConsumerWidget {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('FALA, CRAQUE!', style: TextStyle(color: DalehColors.turf, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                  Text('FALA, CRAQUE!', style: TextStyle(color: DalehColors.muted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
                   SizedBox(height: 4),
-                  Text('Pronto pra mais\num jogo?', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, height: 1.15)),
+                  Text.rich(
+                    TextSpan(
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 26, height: 1.12, color: DalehColors.text),
+                      children: [
+                        TextSpan(text: 'Pronto pra\n'),
+                        TextSpan(text: 'mais um jogo?', style: TextStyle(color: DalehColors.turf)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
               _SinoDeNotificacoes(naoLidas: naoLidas),

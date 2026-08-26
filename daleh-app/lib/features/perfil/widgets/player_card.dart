@@ -36,9 +36,10 @@ class PlayerCard extends StatelessWidget {
           colors: [DalehColors.surface2, DalehColors.bg],
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: DalehColors.turf.withOpacity(0.6), width: 1.5),
+        border: Border.all(color: DalehColors.turf.withValues(alpha: 0.5), width: 1.3),
         boxShadow: [
-          BoxShadow(color: DalehColors.turf.withOpacity(0.15), blurRadius: 24, spreadRadius: -4),
+          BoxShadow(color: DalehColors.turf.withValues(alpha: 0.14), blurRadius: 22, spreadRadius: -6),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 30, offset: const Offset(0, 12)),
         ],
       ),
       child: ClipRRect(
@@ -183,7 +184,7 @@ class PlayerCard extends StatelessWidget {
             height: 132,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [DalehColors.turf.withOpacity(0.28), Colors.transparent]),
+              gradient: RadialGradient(colors: [DalehColors.turf.withValues(alpha: 0.28), Colors.transparent]),
             ),
           ),
           CrestAvatar(url: perfil.avatarUrl, nome: perfil.fullName, tamanho: 96),
@@ -196,9 +197,9 @@ class PlayerCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: DalehColors.turf.withOpacity(0.15),
+        color: DalehColors.turf.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: DalehColors.turf.withOpacity(0.6)),
+        border: Border.all(color: DalehColors.turf.withValues(alpha: 0.6)),
       ),
       child: Text(
         posicao.toUpperCase(),
@@ -270,7 +271,7 @@ class _ListrasDiagonais extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = DalehColors.turf.withOpacity(0.035)
+      ..color = DalehColors.turf.withValues(alpha: 0.035)
       ..strokeWidth = 10;
     const espacamento = 22.0;
     final alcance = size.width + size.height;

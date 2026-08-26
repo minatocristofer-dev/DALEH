@@ -15,6 +15,12 @@ class VenueSlotTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final ocupado = slot.ocupado ?? false;
     return Card(
+      shape: ocupado
+          ? null
+          : RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: DalehColors.turf.withValues(alpha: 0.3)),
+            ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: ocupado ? null : onTap,

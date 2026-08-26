@@ -178,10 +178,10 @@ void main() {
     expect(find.text('3 × 2'), findsOneWidget);
   });
 
-  testWidgets('mostra "x" quando ainda não há placar (partida sem times ainda, ou souGestorDaSumula false não afeta isso)', (tester) async {
+  testWidgets('mostra "×" quando ainda não há placar (partida sem times ainda, ou souGestorDaSumula false não afeta isso)', (tester) async {
     await _montar(tester, partida: _partidaComTimes(souGestorDaSumula: false));
 
-    expect(find.text('x'), findsOneWidget);
+    expect(find.text('×'), findsOneWidget);
   });
 
   testWidgets('exibe os eventos de gol e assistência na aba SÚMULA', (tester) async {

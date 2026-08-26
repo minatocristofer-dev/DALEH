@@ -32,22 +32,46 @@ class _HomeShellState extends State<HomeShell> {
         bottom: false,
         child: IndexedStack(index: _aba, children: telas),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _aba,
-        onDestinationSelected: (i) => setState(() => _aba = i),
-        backgroundColor: DalehColors.surface,
-        indicatorColor: DalehColors.turf.withOpacity(0.2),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Início'),
-          NavigationDestination(icon: Icon(Icons.shield_outlined), selectedIcon: Icon(Icons.shield), label: 'Times'),
-          NavigationDestination(
-            icon: Icon(Icons.sports_soccer_outlined),
-            selectedIcon: Icon(Icons.sports_soccer),
-            label: 'Jogos',
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: DalehColors.surface,
+          border: Border(top: BorderSide(color: DalehColors.line)),
+        ),
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            iconTheme: WidgetStateProperty.resolveWith(
+              (states) => IconThemeData(
+                color: states.contains(WidgetState.selected) ? DalehColors.turf : DalehColors.muted,
+                size: 22,
+              ),
+            ),
+            labelTextStyle: WidgetStateProperty.resolveWith(
+              (states) => TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: states.contains(WidgetState.selected) ? DalehColors.turf : DalehColors.muted,
+              ),
+            ),
           ),
-          NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Explorar'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Perfil'),
-        ],
+          child: NavigationBar(
+            selectedIndex: _aba,
+            onDestinationSelected: (i) => setState(() => _aba = i),
+            backgroundColor: DalehColors.surface,
+            elevation: 0,
+            indicatorColor: DalehColors.turf.withValues(alpha: 0.14),
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Início'),
+              NavigationDestination(icon: Icon(Icons.shield_outlined), selectedIcon: Icon(Icons.shield), label: 'Times'),
+              NavigationDestination(
+                icon: Icon(Icons.sports_soccer_outlined),
+                selectedIcon: Icon(Icons.sports_soccer),
+                label: 'Jogos',
+              ),
+              NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Explorar'),
+              NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Perfil'),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -84,65 +84,90 @@ class _JogoDetailBodyState extends ConsumerState<_JogoDetailBody> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (partida.temTimes)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Column(children: [
-                        CrestAvatar(url: partida.homeTeamCrestUrl, nome: partida.homeTeamName ?? 'A', tamanho: 56),
-                        const SizedBox(height: 6),
-                        Text(partida.homeTeamName ?? 'Time A', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                      ]),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: partida.homeScore != null
-                            ? Text(
-                                '${partida.homeScore} × ${partida.awayScore}',
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: DalehColors.turf),
-                              )
-                            : const Text('x', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: DalehColors.muted)),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: DalehColors.surface,
+                borderRadius: BorderRadius.circular(DalehRadius.lg),
+                border: Border.all(color: DalehColors.line),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _linha(Icons.calendar_today, _dataHora(partida.scheduledAt)),
+                  if (partida.venueName != null) _linha(Icons.place, partida.venueName!),
+                  const SizedBox(height: 16),
+                  if (partida.temTimes)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(children: [
+                            CrestAvatar(url: partida.homeTeamCrestUrl, nome: partida.homeTeamName ?? 'A', tamanho: 52),
+                            const SizedBox(height: 6),
+                            Text(
+                              partida.homeTeamName ?? 'Time A',
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                          ]),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: partida.homeScore != null
+                              ? Text(
+                                  '${partida.homeScore} × ${partida.awayScore}',
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 40, color: DalehColors.text, height: 1),
+                                )
+                              : const Text('×', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 28, color: DalehColors.muted)),
+                        ),
+                        Expanded(
+                          child: Column(children: [
+                            CrestAvatar(url: partida.awayTeamCrestUrl, nome: partida.awayTeamName ?? 'B', tamanho: 52),
+                            const SizedBox(height: 6),
+                            Text(
+                              partida.awayTeamName ?? 'Time B',
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                          ]),
+                        ),
+                      ],
+                    )
+                  else
+                    Center(
+                      child: Text(
+                        partida.modalidadeLabel ?? 'Partida',
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
                       ),
-                      Column(children: [
-                        CrestAvatar(url: partida.awayTeamCrestUrl, nome: partida.awayTeamName ?? 'B', tamanho: 56),
-                        const SizedBox(height: 6),
-                        Text(partida.awayTeamName ?? 'Time B', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                      ]),
-                    ],
-                  )
-                else
-                  Center(
-                    child: Text(
-                      partida.modalidadeLabel ?? 'Partida',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
                     ),
-                  ),
-                const SizedBox(height: 16),
-                _linha(Icons.calendar_today, _dataHora(partida.scheduledAt)),
-                if (partida.venueName != null) _linha(Icons.place, partida.venueName!),
-                const SizedBox(height: 8),
-                Center(child: StatusChip(texto: partida.status.toUpperCase(), cor: DalehColors.turf)),
-                const SizedBox(height: 16),
-                if (minhaPresenca == null)
-                  PrimaryButton(label: 'Confirmar presença', onPressed: _confirmar, carregando: _carregandoPresenca)
-                else
-                  Column(
-                    children: [
-                      StatusChip(
-                        texto: minhaPresenca.confirmado ? 'VOCÊ ESTÁ CONFIRMADO' : 'VOCÊ ESTÁ NA LISTA DE ESPERA',
-                        cor: minhaPresenca.confirmado ? DalehColors.turf : DalehColors.amber,
-                      ),
-                      const SizedBox(height: 10),
-                      OutlinedButton(
-                        onPressed: _carregandoPresenca ? null : _cancelar,
-                        child: const Text('Cancelar minha presença'),
-                      ),
-                    ],
-                  ),
-              ],
+                  const SizedBox(height: 14),
+                  Center(child: _pillSolida(partida.status.toUpperCase())),
+                  const SizedBox(height: 16),
+                  if (minhaPresenca == null)
+                    PrimaryButton(label: 'Confirmar presença', onPressed: _confirmar, carregando: _carregandoPresenca)
+                  else
+                    Column(
+                      children: [
+                        StatusChip(
+                          texto: minhaPresenca.confirmado ? 'VOCÊ ESTÁ CONFIRMADO' : 'VOCÊ ESTÁ NA LISTA DE ESPERA',
+                          cor: minhaPresenca.confirmado ? DalehColors.turf : DalehColors.amber,
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton(
+                          onPressed: _carregandoPresenca ? null : _cancelar,
+                          child: const Text('Cancelar minha presença'),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
           const TabBar(tabs: [Tab(text: 'PARTICIPANTES'), Tab(text: 'SÚMULA')]),
@@ -155,6 +180,43 @@ class _JogoDetailBodyState extends ConsumerState<_JogoDetailBody> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Pill de status sólida (fundo lima, texto preto) — reservada pro indicador
+  // mais visível da tela (status da partida), diferente do StatusChip
+  // genérico (contorno translúcido) usado no resto do app.
+  Widget _pillSolida(String texto) {
+    final emAndamento = texto == 'IN_PROGRESS';
+    final cor = switch (texto) {
+      'FINISHED' => DalehColors.muted,
+      'CANCELLED' => DalehColors.danger,
+      _ => DalehColors.turf,
+    };
+    final rotulo = switch (texto) {
+      'SCHEDULED' => 'AGENDADA',
+      'IN_PROGRESS' => 'EM ANDAMENTO',
+      'FINISHED' => 'FINALIZADA',
+      'CANCELLED' => 'CANCELADA',
+      _ => texto,
+    };
+    final fundoSolido = emAndamento || cor == DalehColors.turf;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: fundoSolido ? cor : cor.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(DalehRadius.pill),
+        border: fundoSolido ? null : Border.all(color: cor.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        rotulo,
+        style: TextStyle(
+          color: fundoSolido ? DalehColors.bg : cor,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.4,
+        ),
       ),
     );
   }
@@ -324,27 +386,48 @@ class _EscalacaoPorTime extends StatelessWidget {
               Text('${jogadores.length}', style: const TextStyle(color: DalehColors.muted, fontSize: 12)),
             ],
           ),
+          const SizedBox(height: 12),
           if (jogadores.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 10),
-              child: Text('Ninguém confirmado ainda.', style: TextStyle(color: DalehColors.muted, fontSize: 12)),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: _corGramado, borderRadius: BorderRadius.circular(12)),
+              child: const Text('Ninguém confirmado ainda.', style: TextStyle(color: DalehColors.muted, fontSize: 12)),
             )
           else
-            for (final linha in _linhasDaEscalacao)
-              if (porLinha[linha]!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(linha.toUpperCase(), style: const TextStyle(color: DalehColors.turf, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 14,
-                  runSpacing: 10,
-                  children: porLinha[linha]!.map((j) => _fichaJogador(context, j)).toList(),
-                ),
-              ],
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _corGramado,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: DalehColors.line),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final linha in _linhasDaEscalacao)
+                    if (porLinha[linha]!.isNotEmpty) ...[
+                      Text(linha.toUpperCase(), style: const TextStyle(color: DalehColors.turf, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 14,
+                        runSpacing: 10,
+                        children: porLinha[linha]!.map((j) => _fichaJogador(context, j)).toList(),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
+
+  // Verde-preto bem escuro — nod discreto ao "campo de futebol" atrás da
+  // escalação, sem virar um gramado cartunesco (ver design system, seção 29).
+  static const _corGramado = Color(0xFF08110B);
 
   Widget _fichaJogador(BuildContext context, MatchAttendance a) {
     return InkWell(
@@ -528,14 +611,14 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(ehGol ? Icons.sports_soccer : Icons.adjust, size: 16, color: ehGol ? DalehColors.turf : DalehColors.muted),
+          Icon(ehGol ? Icons.sports_soccer : Icons.adjust, size: 16, color: ehGol ? DalehColors.turf : DalehColors.info),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               '${evento.userFullName ?? 'Jogador'} ${ehGol ? 'marcou um gol' : 'deu uma assistência'}',
               style: TextStyle(
                 fontWeight: ehGol ? FontWeight.w700 : FontWeight.w500,
-                color: ehGol ? DalehColors.text : DalehColors.muted,
+                color: ehGol ? DalehColors.text : DalehColors.textSecondary,
               ),
             ),
           ),
