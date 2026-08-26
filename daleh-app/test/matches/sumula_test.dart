@@ -438,6 +438,18 @@ void main() {
       'events': [],
     });
 
+    // Os dois blocos de escalação (casa + fora) juntos passam da viewport
+    // padrão do teste — aumenta o tamanho pra garantir que a ListView
+    // construa os dois blocos inteiros, não só o que cabe na tela pequena.
+    final tamanhoOriginal = tester.view.physicalSize;
+    final pixelRatioOriginal = tester.view.devicePixelRatio;
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.physicalSize = tamanhoOriginal;
+      tester.view.devicePixelRatio = pixelRatioOriginal;
+    });
+
     await _montar(tester, partida: partida);
 
     expect(find.text('DALEH FC'), findsWidgets);
