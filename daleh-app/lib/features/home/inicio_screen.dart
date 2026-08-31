@@ -51,7 +51,7 @@ class InicioScreen extends ConsumerWidget {
                   SizedBox(height: 4),
                   Text.rich(
                     TextSpan(
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 26, height: 1.12, color: DalehColors.text),
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 28, height: 1.12, color: DalehColors.text),
                       children: [
                         TextSpan(text: 'Pronto pra\n'),
                         TextSpan(text: 'mais um jogo?', style: TextStyle(color: DalehColors.turf)),
@@ -64,7 +64,19 @@ class InicioScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 28),
-          _tituloSecao('PRÓXIMO JOGO'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _tituloSecao('PRÓXIMO JOGO'),
+              GestureDetector(
+                onTap: () => onNavegarParaAba(2),
+                child: const Text(
+                  'Ver todos',
+                  style: TextStyle(color: DalehColors.turf, fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           partidasAsync.when(
             loading: () => const _CarregandoDiscreto(),

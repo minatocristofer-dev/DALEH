@@ -68,7 +68,7 @@ class PlayerCard extends StatelessWidget {
                     style: const TextStyle(
                       color: DalehColors.text,
                       fontWeight: FontWeight.w900,
-                      fontSize: 20,
+                      fontSize: 26,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -249,7 +249,7 @@ class PlayerCard extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text('$valor', style: TextStyle(color: cor, fontWeight: FontWeight.w900, fontSize: 20)),
+          Text('$valor', style: TextStyle(color: cor, fontWeight: FontWeight.w900, fontSize: 26)),
           const SizedBox(height: 2),
           Text(
             label,

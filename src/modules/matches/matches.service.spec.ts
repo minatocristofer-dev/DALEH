@@ -479,6 +479,40 @@ describe('MatchesService', () => {
     });
   });
 
+  describe('minhasPartidas — placar na listagem (fechamento MVP, "Meus Jogos" como histórico)', () => {
+    it('cada partida com os dois times vem com homeScore/awayScore calculados a partir do teamId congelado', async () => {
+      prisma.match.findMany.mockResolvedValue([
+        {
+          id: 'match-1',
+          homeTeamId: 'time-a',
+          awayTeamId: 'time-b',
+          events: [
+            { teamId: 'time-a', eventType: 'goal' },
+            { teamId: 'time-b', eventType: 'goal' },
+            { teamId: 'time-b', eventType: 'goal' },
+          ],
+        },
+      ]);
+
+      const partidas = await service.minhasPartidas('user-1');
+
+      expect(partidas[0].homeScore).toBe(1);
+      expect(partidas[0].awayScore).toBe(2);
+      expect((partidas[0] as any).events).toBeUndefined();
+    });
+
+    it('partida avulsa (sem os dois times) vem com placar null, sem quebrar', async () => {
+      prisma.match.findMany.mockResolvedValue([
+        { id: 'match-2', homeTeamId: null, awayTeamId: null, events: [] },
+      ]);
+
+      const partidas = await service.minhasPartidas('user-1');
+
+      expect(partidas[0].homeScore).toBeNull();
+      expect(partidas[0].awayScore).toBeNull();
+    });
+  });
+
   describe('súmula digital (Fase 8) — elegerMvp', () => {
     const partidaFinalizadaComTimes = {
       id: 'match-1',

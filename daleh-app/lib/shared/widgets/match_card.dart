@@ -38,6 +38,15 @@ class MatchCard extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
                     ),
                   ),
+                  // Placar real (Fase 9: MatchEvent.teamId congelado) — só
+                  // aparece quando já existe (partida com os dois times e
+                  // pelo menos um evento contabilizado), é o que permite
+                  // "Meus Jogos" servir de histórico sem tela nova.
+                  if (partida.homeScore != null)
+                    Text(
+                      '${partida.homeScore} × ${partida.awayScore}',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: DalehColors.turf),
+                    ),
                   if (partida.visibility == 'private') const StatusChip(texto: 'PRIVADA', cor: DalehColors.muted),
                 ],
               ),

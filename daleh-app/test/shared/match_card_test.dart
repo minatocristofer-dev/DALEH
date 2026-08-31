@@ -46,4 +46,44 @@ void main() {
     await tester.tap(find.byType(MatchCard));
     expect(tocou, isTrue);
   });
+
+  testWidgets('mostra o placar real quando a partida já tem gols (fechamento MVP — histórico em "Meus Jogos")', (tester) async {
+    final partida = Match.fromJson({
+      'id': 'm3',
+      'createdById': 'user-1',
+      'modalidadeId': 'mod-1',
+      'homeTeamId': 'ta',
+      'homeTeam': {'id': 'ta', 'name': 'DALEH FC', 'crestUrl': null},
+      'awayTeamId': 'tb',
+      'awayTeam': {'id': 'tb', 'name': 'Amigos do Zé', 'crestUrl': null},
+      'scheduledAt': '2026-09-10T20:00:00.000Z',
+      'status': 'finished',
+      'visibility': 'public',
+      'homeScore': 3,
+      'awayScore': 1,
+    });
+
+    await tester.pumpWidget(_comTema(MatchCard(partida: partida, onTap: () {})));
+
+    expect(find.text('3 × 1'), findsOneWidget);
+  });
+
+  testWidgets('sem placar calculado ainda, não mostra nenhum número inventado', (tester) async {
+    final partida = Match.fromJson({
+      'id': 'm4',
+      'createdById': 'user-1',
+      'modalidadeId': 'mod-1',
+      'homeTeamId': 'ta',
+      'homeTeam': {'id': 'ta', 'name': 'DALEH FC', 'crestUrl': null},
+      'awayTeamId': 'tb',
+      'awayTeam': {'id': 'tb', 'name': 'Amigos do Zé', 'crestUrl': null},
+      'scheduledAt': '2026-09-10T20:00:00.000Z',
+      'status': 'scheduled',
+      'visibility': 'public',
+    });
+
+    await tester.pumpWidget(_comTema(MatchCard(partida: partida, onTap: () {})));
+
+    expect(find.textContaining('×'), findsNothing);
+  });
 }

@@ -451,8 +451,11 @@ export class MatchesService {
     });
   }
 
-  minhasPartidas(userId: string) {
-    return this.prisma.match.findMany({
+  // Inclui o placar (mesma lógica de obterPartida, Fase 9) em cada item da
+  // listagem — é o que permite "Meus Jogos" servir de histórico real sem
+  // precisar de uma tela nova (DALEH 1.0, fechamento do MVP).
+  async minhasPartidas(userId: string) {
+    const partidas = await this.prisma.match.findMany({
       where: {
         OR: [{ createdById: userId }, { attendance: { some: { userId, status: { in: ['confirmed', 'waitlist'] } } } }],
       },
@@ -461,9 +464,18 @@ export class MatchesService {
         venue: true,
         homeTeam: { select: { id: true, name: true, crestUrl: true } },
         awayTeam: { select: { id: true, name: true, crestUrl: true } },
+        events: { select: { teamId: true, eventType: true } },
         _count: { select: { attendance: true } },
       },
       orderBy: { scheduledAt: 'asc' },
+    });
+
+    return partidas.map(({ events, ...partida }) => {
+      const temTimes = !!(partida.homeTeamId && partida.awayTeamId);
+      const { homeScore, awayScore } = temTimes
+        ? this.calcularPlacar(partida.homeTeamId!, partida.awayTeamId!, events)
+        : { homeScore: null, awayScore: null };
+      return { ...partida, homeScore, awayScore };
     });
   }
 
