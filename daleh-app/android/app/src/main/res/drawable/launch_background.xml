@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Modify this file to customize your launch splash screen -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
+    <!-- Fundo escuro do Design System (DalehColors.bg, #050708) — evita o
+         flash branco padrão do Flutter no boot, já que o app é 100% dark. -->
+    <item android:drawable="#FF050708" />
 
     <!-- You can insert your own image assets here -->
     <!-- <item>

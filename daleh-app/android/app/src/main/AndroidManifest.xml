@@ -5,7 +5,7 @@
          falar com a API do DALEH, então essa permissão é obrigatória aqui. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="daleh_app"
+        android:label="DALEH"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

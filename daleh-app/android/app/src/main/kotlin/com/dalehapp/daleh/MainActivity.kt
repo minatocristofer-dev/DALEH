@@ -1,4 +1,4 @@
-package com.dalehapp.daleh_app
+package com.dalehapp.daleh
 
 import io.flutter.embedding.android.FlutterActivity
 
