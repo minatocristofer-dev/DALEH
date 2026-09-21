@@ -53,7 +53,7 @@ class _RaizState extends ConsumerState<_Raiz> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _cabecalho(),
+                  _cabecalho(telaAuth),
                   const SizedBox(height: 16),
                   if (auth.verificandoSessao)
                     const Center(child: CircularProgressIndicator(color: DalehColors.turf))
@@ -70,7 +70,13 @@ class _RaizState extends ConsumerState<_Raiz> {
     );
   }
 
-  Widget _cabecalho() {
+  // O subtítulo e o ícone precisam refletir a tela real (Login ou Cadastro)
+  // — antes ficava fixo em "O básico do app" nas duas, o que não fazia
+  // sentido durante o cadastro (achado em QA real).
+  Widget _cabecalho(_TelaAuth tela) {
+    final subtitulo = tela == _TelaAuth.login ? 'Entre na sua conta' : 'Crie sua conta';
+    final icone = tela == _TelaAuth.login ? Icons.login : Icons.person_add_alt_1;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
@@ -80,18 +86,29 @@ class _RaizState extends ConsumerState<_Raiz> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('DALEH', style: TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5)),
-              Text('O básico do app', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-            ],
+          // "Entre na sua conta"/"Crie sua conta" são mais longos que o texto
+          // fixo de antes — sem o Expanded, estourava por cima do ícone (bug
+          // achado em QA real, capturado pelo teste de overflow).
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('DALEH', style: TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5)),
+                Text(
+                  subtitulo,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 12),
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(color: DalehColors.turf, borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.groups, color: DalehColors.bg, size: 18),
+            child: Icon(icone, color: DalehColors.bg, size: 18),
           ),
         ],
       ),

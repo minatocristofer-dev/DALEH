@@ -53,4 +53,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Entrar'), findsWidgets);
   });
+
+  testWidgets('cabeçalho acompanha a tela real: "Entre na sua conta" no login, "Crie sua conta" no cadastro (bug achado em QA)', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [authStorageProvider.overrideWithValue(FakeAuthStorage())],
+      child: const DalehApp(),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Entre na sua conta'), findsOneWidget);
+    expect(find.text('Crie sua conta'), findsNothing);
+
+    await tester.tap(find.text('Cadastre-se'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Crie sua conta'), findsOneWidget);
+    expect(find.text('Entre na sua conta'), findsNothing);
+  });
 }

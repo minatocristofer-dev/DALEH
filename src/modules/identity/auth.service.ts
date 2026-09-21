@@ -32,6 +32,17 @@ export class AuthService {
       throw new ConflictException('Já existe uma conta com este e-mail.');
     }
 
+    // `phone` também é único no banco (ver schema) — sem essa checagem aqui,
+    // a violação só aparecia lá na frente como um erro genérico de banco
+    // (500 "Internal server error"), sem nenhuma mensagem que fizesse
+    // sentido pra quem está se cadastrando.
+    if (dto.phone) {
+      const telefoneJaCadastrado = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+      if (telefoneJaCadastrado) {
+        throw new ConflictException('Já existe uma conta com este telefone.');
+      }
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
 
     // Cria o usuário, o perfil e todas as modalidades numa única transação —

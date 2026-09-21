@@ -65,6 +65,47 @@ describe('AuthService', () => {
       ).rejects.toBeInstanceOf(ConflictException);
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
+
+    // Achado em QA real: telefone repetido derrubava o cadastro com um 500
+    // cru do Postgres ("Unique constraint failed on the fields: (phone)"),
+    // em vez de uma mensagem que fizesse sentido pra quem está se cadastrando.
+    it('rejeita com 409 (não 500) quando o telefone já está cadastrado por outra conta', async () => {
+      prisma.user.findUnique.mockImplementation(({ where }: any) => {
+        if (where.email) return Promise.resolve(null);
+        if (where.phone) return Promise.resolve({ id: 'outro-usuario', phone: '51999999999' });
+        return Promise.resolve(null);
+      });
+
+      await expect(
+        service.register({ email: 'novo@teste.com', phone: '51999999999' } as any),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('telefone informado mas ainda livre: cadastro segue normalmente', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(async (fn: any) =>
+        fn({
+          user: { create: jest.fn().mockResolvedValue({ id: 'user-1', email: 'novo@teste.com' }) },
+          playerProfile: { create: jest.fn() },
+          modalidade: { findUnique: jest.fn().mockResolvedValue(null) },
+          playerModalidade: { create: jest.fn() },
+          playerStats: { create: jest.fn() },
+          role: { findUnique: jest.fn().mockResolvedValue(null) },
+          userRole: { create: jest.fn() },
+        }),
+      );
+
+      const resultado = await service.register({
+        fullName: 'Novo Usuário',
+        email: 'novo@teste.com',
+        phone: '51988887777',
+        password: 'senha12345',
+        modalidades: [],
+      } as any);
+
+      expect(resultado).toEqual({ accessToken: 'token-assinado' });
+    });
   });
 
   describe('login', () => {
