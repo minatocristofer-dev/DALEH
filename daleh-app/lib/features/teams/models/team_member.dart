@@ -29,6 +29,11 @@ class TeamMember {
   final String status;
   final String fullName;
   final String? avatarUrl;
+  // Posição principal do jogador (primeira modalidade cadastrada por ele,
+  // ver AuthService/TeamsService — não existe "modalidade principal" no
+  // schema). Null quando o jogador ainda não cadastrou nenhuma modalidade;
+  // nunca inventado.
+  final String? posicaoPrincipal;
   final EstatisticasNoTime estatisticas;
 
   TeamMember({
@@ -39,6 +44,7 @@ class TeamMember {
     required this.status,
     required this.fullName,
     this.avatarUrl,
+    this.posicaoPrincipal,
     required this.estatisticas,
   });
 
@@ -52,6 +58,7 @@ class TeamMember {
       status: json['status'] as String,
       fullName: user?['fullName'] as String? ?? '',
       avatarUrl: user?['avatarUrl'] as String?,
+      posicaoPrincipal: json['posicaoPrincipal'] as String?,
       estatisticas: EstatisticasNoTime.fromJson(json['estatisticas'] as Map<String, dynamic>?),
     );
   }

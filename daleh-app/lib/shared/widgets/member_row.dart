@@ -5,6 +5,12 @@ import '../../theme/daleh_theme.dart';
 import 'crest_avatar.dart';
 import 'status_chip.dart';
 
+/// Layout definido pelo mockup "TIME — ELENCO" (QA de 2026-09-21): foto,
+/// nome, posição, e jogos/gols/MVPs em colunas. Número da camisa do mockup
+/// não entra — não existe esse campo no backend (mesma lacuna documentada no
+/// Player Card). O papel de gestão (capitão/vice/dono) continua aparecendo,
+/// só que discreto (badge ao lado do nome, e só quando não é "jogador"
+/// comum) — informação real que já existia, não dá pra simplesmente sumir.
 class MemberRow extends StatelessWidget {
   final TeamMember membro;
   final bool ehDono;
@@ -27,9 +33,10 @@ class MemberRow extends StatelessWidget {
   Widget build(BuildContext context) {
     // Dono não tem o próprio papel alterado/removido por aqui — ele só sai do time excluindo o time (fora de escopo desta fase).
     final podeAgirNesteMembro = possoGerenciar && !ehDono;
+    final papelDeDestaque = ehDono || membro.papel != 'JOGADOR';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(
@@ -40,25 +47,47 @@ class MemberRow extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  CrestAvatar(url: membro.avatarUrl, nome: membro.fullName, tamanho: 40),
+                  CrestAvatar(url: membro.avatarUrl, nome: membro.fullName, tamanho: 44),
                   const SizedBox(width: 12),
                   Expanded(
+                    flex: 3,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                souEuMesmo ? '${membro.fullName} (você)' : membro.fullName,
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (papelDeDestaque) ...[
+                              const SizedBox(width: 6),
+                              StatusChip.papel(membro.papel, souDono: ehDono),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
                         Text(
-                          souEuMesmo ? '${membro.fullName} (você)' : membro.fullName,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                          membro.posicaoPrincipal ?? 'Sem modalidade cadastrada',
+                          style: const TextStyle(color: DalehColors.muted, fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
-                        StatusChip.papel(membro.papel, souDono: ehDono),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${membro.estatisticas.jogos} jogos · ${membro.estatisticas.gols} gols · ${membro.estatisticas.mvp} MVP',
-                          style: const TextStyle(color: DalehColors.muted, fontSize: 11),
-                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _estatistica('JOGOS', membro.estatisticas.jogos),
+                        _estatistica('GOLS', membro.estatisticas.gols),
+                        _estatistica('MVPS', membro.estatisticas.mvp),
                       ],
                     ),
                   ),
@@ -94,9 +123,25 @@ class MemberRow extends StatelessWidget {
             TextButton(
               onPressed: onRemover,
               child: const Text('Sair', style: TextStyle(color: DalehColors.danger)),
-            ),
+            )
+          else
+            const Icon(Icons.chevron_right, color: DalehColors.muted),
         ],
       ),
+    );
+  }
+
+  Widget _estatistica(String label, int valor) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('$valor', style: const TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 15)),
+        const SizedBox(height: 1),
+        Text(
+          label,
+          style: const TextStyle(color: DalehColors.muted, fontSize: 8, fontWeight: FontWeight.w700, letterSpacing: 0.3),
+        ),
+      ],
     );
   }
 }

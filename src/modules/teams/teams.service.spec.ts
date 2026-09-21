@@ -252,8 +252,27 @@ describe('TeamsService — obterTime (Fase visual, estatísticas reais por jogad
     id: 'time-1',
     name: 'Time 1',
     members: [
-      { id: 'membro-1', teamId: 'time-1', userId: 'user-joao', papel: 'CAPITAO', status: 'active' },
-      { id: 'membro-2', teamId: 'time-1', userId: 'user-marcos', papel: 'JOGADOR', status: 'active' },
+      {
+        id: 'membro-1',
+        teamId: 'time-1',
+        userId: 'user-joao',
+        papel: 'CAPITAO',
+        status: 'active',
+        user: {
+          id: 'user-joao',
+          fullName: 'João',
+          avatarUrl: null,
+          playerModalidades: [{ posicaoPrincipal: 'Atacante', modalidade: { key: 'FUTSAL' } }],
+        },
+      },
+      {
+        id: 'membro-2',
+        teamId: 'time-1',
+        userId: 'user-marcos',
+        papel: 'JOGADOR',
+        status: 'active',
+        user: { id: 'user-marcos', fullName: 'Marcos', avatarUrl: null, playerModalidades: [] },
+      },
     ],
   };
 
@@ -270,6 +289,13 @@ describe('TeamsService — obterTime (Fase visual, estatísticas reais por jogad
       notifications as unknown as NotificationsService,
       teamAuth as unknown as TeamAuthorizationService,
     );
+  });
+
+  it('devolve a posição principal de quem tem modalidade cadastrada, e null pra quem não tem (nunca inventada)', async () => {
+    const time = await service.obterTime('time-1');
+
+    expect(time.members[0]).toMatchObject({ userId: 'user-joao', posicaoPrincipal: 'Atacante' });
+    expect(time.members[1]).toMatchObject({ userId: 'user-marcos', posicaoPrincipal: null });
   });
 
   it('devolve jogos/gols/mvp reais por jogador, calculados a partir do MatchEvent.teamId congelado (Fase 9)', async () => {

@@ -68,13 +68,31 @@ export class TeamsService {
       include: {
         members: {
           where: { status: 'active' },
-          include: { user: { select: { id: true, fullName: true, avatarUrl: true } } },
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                avatarUrl: true,
+                // Só a primeira modalidade cadastrada do jogador (mesma
+                // convenção de "modalidadePrincipal" usada no Player Card —
+                // não existe conceito de "modalidade principal" no schema,
+                // então é sempre a primeira, nunca inventada).
+                playerModalidades: { take: 1, include: { modalidade: true } },
+              },
+            },
+          },
         },
       },
     });
     if (!time) throw new NotFoundException('Time não encontrado.');
 
-    return { ...time, members: await this.comEstatisticasDoElenco(teamId, time.members) };
+    const membrosComPosicao = time.members.map((m) => {
+      const { playerModalidades, ...user } = m.user;
+      return { ...m, user, posicaoPrincipal: playerModalidades[0]?.posicaoPrincipal ?? null };
+    });
+
+    return { ...time, members: await this.comEstatisticasDoElenco(teamId, membrosComPosicao) };
   }
 
   // Estatísticas reais por jogador do elenco (jogos/gols/mvp), calculadas a
