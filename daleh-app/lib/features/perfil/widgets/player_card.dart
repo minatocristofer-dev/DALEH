@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/crest_avatar.dart';
 import '../../../theme/daleh_theme.dart';
+import '../foto_perfil_layout.dart';
 import '../models/meu_perfil.dart';
 
 /// A "carta de jogador" do DALEH — layout definido pelo mockup "PERFIL —
@@ -129,7 +130,7 @@ class PlayerCard extends StatelessWidget {
 
   Widget _fotoJogador() {
     return AspectRatio(
-      aspectRatio: 0.85,
+      aspectRatio: aspectoFotoPerfil,
       child: ClipPath(
         clipper: const _ClipCantoChanfrado(raio: 14, chanfro: 20),
         child: Container(
@@ -146,12 +147,37 @@ class PlayerCard extends StatelessWidget {
     );
   }
 
-  // Sem foto enviada ainda (a maioria dos perfis hoje) — mostra o template
-  // da camisa em branco (sem rosto nenhum) em vez de um espaço vazio, só
-  // pra dar uma pista visual de onde a foto vai aparecer. Não é dado
-  // inventado: é literalmente o mesmo template usado em EditarFotoScreen.
+  // Sem foto enviada ainda (a maioria dos perfis hoje) — mostra a mesma
+  // estrutura do resultado final (silhueta + faixa da camisa na base) em
+  // vez de um espaço vazio, só pra dar uma pista visual de onde a foto vai
+  // aparecer. Não é dado inventado: é literalmente o template usado em
+  // EditarFotoScreen.
   Widget _placeholderFoto() {
-    return Image.asset('assets/jerseys/jersey_solto.png', fit: BoxFit.cover);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Align(
+          alignment: const Alignment(0, -0.22),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: DalehColors.turf.withValues(alpha: 0.5), width: 1.5),
+            ),
+            child: const Icon(Icons.person_outline, size: 22, color: DalehColors.muted),
+          ),
+        ),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: FractionallySizedBox(
+            heightFactor: fracaoCamisaFotoPerfil,
+            widthFactor: 1,
+            child: Image.asset('assets/jerseys/jersey_solto.png', fit: BoxFit.cover),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _linhaIcone(IconData icone, String texto) {
