@@ -49,6 +49,10 @@ dependencies:
   path_provider: ^2.1.5
   # Tirar foto (câmera) ou escolher da galeria pra encaixar na camisa do DALEH
   image_picker: ^1.1.2
+  # Declara o Content-Type certo (image/png) no upload multipart da foto de
+  # perfil — sem isso o `http` manda "application/octet-stream" e o backend
+  # recusa o arquivo (era essa a causa do erro "tem que ser PNG ou JPEG").
+  http_parser: ^4.1.2
 
 dev_dependencies:
   flutter_test:
@@ -72,14 +76,15 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Modelos de "torso com camisa do DALEH" — usados no encaixe da foto de
-  # perfil do jogador (ver PoseCamisaDaleh). Gerados por IA de imagem sob
-  # direção do usuário, cortados no pescoço e com fundo transparente, pra
-  # a foto do rosto do jogador ser encaixada por cima.
+  # Template de "torso com camisa do DALEH" — usado no encaixe da foto de
+  # perfil do jogador (ver EditarFotoScreen). Gerado por IA de imagem sob
+  # direção do usuário, cortado no pescoço e com fundo transparente, pra a
+  # foto do rosto do jogador ser encaixada por cima. As outras 2 poses
+  # (assets/jerseys/jersey_bracos_cruzados.png, jersey_super_heroi.png)
+  # continuam no repositório mas não entram no build por enquanto — só uma
+  # pose fixa por decisão explícita do usuário (QA de 2026-09-21).
   assets:
     - assets/jerseys/jersey_solto.png
-    - assets/jerseys/jersey_bracos_cruzados.png
-    - assets/jerseys/jersey_super_heroi.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

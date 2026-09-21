@@ -7,27 +7,20 @@ import 'package:image_picker/image_picker.dart';
 import '../../theme/daleh_theme.dart';
 import 'editar_foto_controller.dart';
 
-class _Pose {
-  final String label;
-  final String asset;
-  const _Pose(this.label, this.asset);
-}
+// Um template só (ver decisão do usuário — nada de escolher pose por
+// enquanto). Escudo/logo do time no peito fica pra uma fase futura: precisa
+// de um campo novo pra upload do escudo do time, que ainda não existe.
+const _templateAsset = 'assets/jerseys/jersey_solto.png';
 
-const _poses = [
-  _Pose('Solto', 'assets/jerseys/jersey_solto.png'),
-  _Pose('Braços cruzados', 'assets/jerseys/jersey_bracos_cruzados.png'),
-  _Pose('Lateral', 'assets/jerseys/jersey_super_heroi.png'),
-];
-
-// Proporção real dos 3 templates (1086x1448) — mantém o encaixe da foto
-// consistente com o corte de pescoço de cada pose.
+// Proporção real do template (1086x1448) — mantém o encaixe da foto
+// consistente com o corte de pescoço da pose.
 const _aspectoTemplate = 1086 / 1448;
 
-/// Deixa o jogador escolher uma pose de camisa do DALEH, tirar/escolher uma
-/// foto e posicioná-la (arrastar + pinçar) por trás do template — a área
-/// transparente do PNG (rosto/pescoço) deixa a foto aparecer, a área opaca
-/// (camisa/torso) cobre o resto. O resultado é achatado num único PNG
-/// (mesma técnica de `player_card_share.dart`) e enviado pro backend.
+/// Deixa o jogador tirar/escolher uma foto e posicioná-la (arrastar +
+/// pinçar) por trás do template da camisa do DALEH — a área transparente do
+/// PNG (rosto/pescoço) deixa a foto aparecer, a área opaca (camisa/torso)
+/// cobre o resto. O resultado é achatado num único PNG (mesma técnica de
+/// `player_card_share.dart`) e enviado pro backend.
 class EditarFotoScreen extends ConsumerStatefulWidget {
   const EditarFotoScreen({super.key});
 
@@ -39,7 +32,6 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
   final _boundaryKey = GlobalKey();
   final _picker = ImagePicker();
 
-  _Pose _pose = _poses.first;
   Uint8List? _foto;
   Offset _offset = Offset.zero;
   double _escala = 1.0;
@@ -85,12 +77,10 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           const Text(
-            'Escolha a pose da camisa e encaixe sua foto: arraste pra posicionar, pinça pra ajustar o tamanho.',
+            'Encaixe sua foto na camisa do DALEH: arraste pra posicionar, pinça pra ajustar o tamanho.',
             style: TextStyle(color: DalehColors.muted, fontSize: 13),
           ),
           const SizedBox(height: 16),
-          _seletorDePose(),
-          const SizedBox(height: 20),
           Center(child: _canvas()),
           const SizedBox(height: 20),
           Row(
@@ -132,25 +122,6 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
     );
   }
 
-  Widget _seletorDePose() {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: _poses.map((p) {
-        final selecionada = p.asset == _pose.asset;
-        return ChoiceChip(
-          label: Text(p.label),
-          selected: selecionada,
-          onSelected: (_) => setState(() => _pose = p),
-          selectedColor: DalehColors.turf.withValues(alpha: 0.2),
-          backgroundColor: DalehColors.surface2,
-          labelStyle: TextStyle(color: selecionada ? DalehColors.turf : DalehColors.text, fontWeight: FontWeight.w700),
-          side: BorderSide(color: selecionada ? DalehColors.turf : DalehColors.line),
-        );
-      }).toList(),
-    );
-  }
-
   Widget _canvas() {
     return AspectRatio(
       aspectRatio: _aspectoTemplate,
@@ -189,7 +160,7 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
                       ),
                     ),
                   ),
-                IgnorePointer(child: Image.asset(_pose.asset, fit: BoxFit.cover)),
+                IgnorePointer(child: Image.asset(_templateAsset, fit: BoxFit.cover)),
               ],
             ),
           ),

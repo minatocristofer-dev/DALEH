@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 // Padrão continua sendo a API de produção (Render). Só é sobrescrita quando o
 // build recebe --dart-define=API_BASE_URL=... — usado pra apontar
@@ -158,7 +159,16 @@ class ApiClient {
     final uri = Uri.parse('$apiBaseUrl$path');
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer $token'
-      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: nomeArquivo));
+      // Sem `contentType`, o pacote `http` manda "application/octet-stream"
+      // por padrão — o backend recusa isso (só aceita image/png e
+      // image/jpeg). A foto composta sempre sai como PNG (ver
+      // EditarFotoScreen), então o tipo aqui é fixo.
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: nomeArquivo,
+        contentType: MediaType('image', 'png'),
+      ));
 
     http.StreamedResponse streamed;
     try {
