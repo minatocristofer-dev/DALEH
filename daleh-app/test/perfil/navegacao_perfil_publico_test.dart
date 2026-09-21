@@ -85,8 +85,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(PerfilPublicoScreen), findsOneWidget);
-      // PlayerCard mostra o nome em caixa alta.
-      expect(find.text('ALVO TOCADO'), findsOneWidget);
+      // PlayerCard mostra o nome em caixa alta, quebrado em 2 linhas
+      // (mockup "PLAYER CARD", QA 2026-09-21).
+      expect(find.text('ALVO'), findsOneWidget);
+      expect(find.text('TOCADO'), findsOneWidget);
     });
 
     testWidgets('menu administrativo do MemberRow continua funcionando (não virou navegação)', (tester) async {

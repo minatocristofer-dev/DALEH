@@ -3,14 +3,19 @@ import '../../../shared/widgets/crest_avatar.dart';
 import '../../../theme/daleh_theme.dart';
 import '../models/meu_perfil.dart';
 
-/// A "carta de jogador" do DALEH — identidade visual própria (gradiente
-/// campo-à-noite + lima + âmbar já usados no resto do app, textura de
-/// listras diagonais como a do padrão `fm-stripes` do protótipo original),
-/// sem copiar nenhum elemento gráfico de FIFA/EA FC/Ultimate Team. Só mostra
-/// dado real: nada de overall, número de camisa ou vitórias/derrotas, porque
-/// o backend não tem isso (ver Fase 6/7 — auditoria). Genérico o bastante
-/// pra representar tanto o próprio jogador quanto o perfil público de
-/// outro (Fase 7) — não depende de "ser meu perfil" em nada.
+/// A "carta de jogador" do DALEH — layout definido pelo mockup "PERFIL —
+/// PLAYER CARD" (QA de 2026-09-21): canto superior direito chanfrado, foto
+/// do jogador encaixada nesse canto (a mesma foto composta com a camisa do
+/// DALEH, gerada em EditarFotoScreen), nome em duas linhas, linhas de
+/// informação com ícone, time em destaque com o escudo à direita, e
+/// estatísticas em 4 colunas.
+///
+/// O mockup também tem número da camisa ("#10"), data de entrada no time
+/// ("DESDE MAR 2024") e uma fileira de badges/conquistas ("HISTÓRICO
+/// DALEH") — nenhum desses três tem campo correspondente no backend (não
+/// existe número de camisa, TeamMember não guarda data de entrada, e não
+/// existe nenhum sistema de conquistas). Por decisão do projeto de nunca
+/// inventar dado, os três ficam de fora daqui.
 class PlayerCard extends StatelessWidget {
   final MeuPerfil perfil;
   const PlayerCard({super.key, required this.perfil});
@@ -18,241 +23,197 @@ class PlayerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final modalidadePrincipal = perfil.modalidadePrincipal;
+    final time = perfil.timesAtuais.isEmpty ? null : perfil.timesAtuais.first;
+    final outrosTimes = perfil.timesAtuais.length - 1;
+    final (primeiraLinhaNome, ultimaLinhaNome) = _partesNome(perfil.fullName);
+
     final localizacao = [perfil.city, perfil.state].where((v) => v != null && v.isNotEmpty).join(' / ');
-    // Idade só entra na linha quando existir (a maioria dos perfis ainda não
-    // tem data de nascimento cadastrada — ver Fase 9, model MeuPerfil).
-    final infoSecundaria = [
-      if (perfil.idade != null) '${perfil.idade} anos',
-      if (localizacao.isNotEmpty) localizacao,
+    final localizacaoTexto = [
+      if (localizacao.isNotEmpty) localizacao.toUpperCase(),
+      if (perfil.idade != null) '${perfil.idade} ANOS',
     ].join(' · ');
+
     final e = perfil.estatisticas;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [DalehColors.surface2, DalehColors.bg],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: DalehColors.turf.withValues(alpha: 0.5), width: 1.3),
-        boxShadow: [
-          BoxShadow(color: DalehColors.turf.withValues(alpha: 0.14), blurRadius: 22, spreadRadius: -6),
-          BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 30, offset: const Offset(0, 12)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22.5),
-        child: Stack(
-          children: [
-            const Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _ListrasDiagonais()))),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ClipPath(
+      clipper: const _ClipCantoChanfrado(raio: 24, chanfro: 36),
+      child: CustomPaint(
+        painter: const _MolduraCartao(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 22, 18, 22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'DALEH',
+                            style: TextStyle(
+                              color: DalehColors.turf,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 19,
+                              fontStyle: FontStyle.italic,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text(
+                            primeiraLinhaNome.isNotEmpty ? primeiraLinhaNome : ultimaLinhaNome,
+                            style: const TextStyle(
+                              color: DalehColors.text,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                              height: 1.05,
+                            ),
+                          ),
+                          if (primeiraLinhaNome.isNotEmpty)
+                            Text(
+                              ultimaLinhaNome,
+                              style: const TextStyle(
+                                color: DalehColors.turf,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 22,
+                                height: 1.05,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(flex: 5, child: _fotoJogador()),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (modalidadePrincipal != null)
+                _linhaIcone(Icons.compare_arrows, modalidadePrincipal.posicaoPrincipal.toUpperCase()),
+              if (perfil.dominantFoot != null) _linhaIcone(Icons.directions_run, 'PÉ ${perfil.dominantFoot!.toUpperCase()}'),
+              if (localizacaoTexto.isNotEmpty) _linhaIcone(Icons.place_outlined, localizacaoTexto),
+              _linhaTime(time, outrosTimes),
+              const SizedBox(height: 6),
+              const Divider(color: DalehColors.line, height: 1),
+              const SizedBox(height: 16),
+              Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _seloDaleh(),
-                      if (modalidadePrincipal != null) _badgePosicao(modalidadePrincipal.posicaoPrincipal),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Center(child: _avatarComBrilho()),
-                  const SizedBox(height: 14),
-                  Text(
-                    perfil.fullName.toUpperCase(),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: DalehColors.text,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 26,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  if (infoSecundaria.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      infoSecundaria,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: DalehColors.muted, fontSize: 12),
-                    ),
-                  ],
-                  if (perfil.dominantFoot != null) ...[
-                    const SizedBox(height: 10),
-                    Center(child: _chipModalidade('Pé ${perfil.dominantFoot}')),
-                  ],
-                  if (perfil.modalidades.length > 1) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
-                      children:
-                          perfil.modalidades.map((m) => _chipModalidade('${m.label}: ${m.posicaoPrincipal}')).toList(),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  const Divider(color: DalehColors.line, height: 1),
-                  const SizedBox(height: 14),
-                  _linhaTimes(),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      _estatistica('JOGOS', e.jogosDisputados),
-                      _estatistica('GOLS', e.gols),
-                      _estatistica('ASSISTS', e.assistencias),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _estatistica('MVP', e.mvp, cor: DalehColors.amber),
-                      _estatistica('AMARELOS', e.cartoesAmarelos, cor: DalehColors.amber),
-                      _estatistica('VERMELHOS', e.cartoesVermelhos, cor: DalehColors.danger),
-                    ],
-                  ),
-                  if (perfil.bio != null && perfil.bio!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    const Divider(color: DalehColors.line, height: 1),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'SOBRE',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: DalehColors.amber, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      perfil.bio!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: DalehColors.text, fontSize: 12),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  const Divider(color: DalehColors.line, height: 1),
-                  const SizedBox(height: 12),
-                  const Text(
-                    '"Cada jogo constrói sua história."',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: DalehColors.muted, fontSize: 11, fontStyle: FontStyle.italic),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'EVERY MATCH BUILDS YOUR LEGACY.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: DalehColors.amber, fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 1.2),
-                  ),
+                  _estatistica('JOGOS', e.jogosDisputados),
+                  _estatistica('GOLS', e.gols),
+                  _estatistica('ASSISTÊNCIAS', e.assistencias),
+                  _estatistica('MVPS', e.mvp),
                 ],
               ),
-            ),
-          ],
+              if (perfil.bio != null && perfil.bio!.trim().isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Divider(color: DalehColors.line, height: 1),
+                const SizedBox(height: 14),
+                const Text(
+                  'SOBRE',
+                  style: TextStyle(color: DalehColors.text, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+                ),
+                const SizedBox(height: 6),
+                Text(perfil.bio!, style: const TextStyle(color: DalehColors.textSecondary, fontSize: 13, height: 1.4)),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _seloDaleh() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: DalehColors.amber, width: 1.2)),
-          child: const Icon(Icons.sports_soccer, size: 11, color: DalehColors.amber),
+  Widget _fotoJogador() {
+    return AspectRatio(
+      aspectRatio: 0.85,
+      child: ClipPath(
+        clipper: const _ClipCantoChanfrado(raio: 14, chanfro: 20),
+        child: Container(
+          color: DalehColors.surface2,
+          child: perfil.avatarUrl != null && perfil.avatarUrl!.isNotEmpty
+              ? Image.network(
+                  perfil.avatarUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _placeholderFoto(),
+                )
+              : _placeholderFoto(),
         ),
-        const SizedBox(width: 6),
-        const Text(
-          'DALEH PLAYER',
-          style: TextStyle(color: DalehColors.amber, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _avatarComBrilho() {
-    return SizedBox(
-      width: 132,
-      height: 132,
-      child: Stack(
-        alignment: Alignment.center,
+  // Sem foto enviada ainda (a maioria dos perfis hoje) — mostra o template
+  // da camisa em branco (sem rosto nenhum) em vez de um espaço vazio, só
+  // pra dar uma pista visual de onde a foto vai aparecer. Não é dado
+  // inventado: é literalmente o mesmo template usado em EditarFotoScreen.
+  Widget _placeholderFoto() {
+    return Image.asset('assets/jerseys/jersey_solto.png', fit: BoxFit.cover);
+  }
+
+  Widget _linhaIcone(IconData icone, String texto) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
         children: [
-          Container(
-            width: 132,
-            height: 132,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(colors: [DalehColors.turf.withValues(alpha: 0.28), Colors.transparent]),
+          Icon(icone, size: 16, color: DalehColors.turf),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              texto,
+              style: const TextStyle(color: DalehColors.text, fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: 0.3),
             ),
           ),
-          CrestAvatar(url: perfil.avatarUrl, nome: perfil.fullName, tamanho: 96),
         ],
       ),
     );
   }
 
-  Widget _badgePosicao(String posicao) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: DalehColors.turf.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: DalehColors.turf.withValues(alpha: 0.6)),
-      ),
-      child: Text(
-        posicao.toUpperCase(),
-        style: const TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
-      ),
-    );
-  }
-
-  Widget _chipModalidade(String texto) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: DalehColors.surface,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: DalehColors.line),
-      ),
-      child: Text(texto, style: const TextStyle(color: DalehColors.text, fontSize: 11, fontWeight: FontWeight.w700)),
-    );
-  }
-
-  Widget _linhaTimes() {
-    if (perfil.timesAtuais.isEmpty) {
-      return const Text(
-        'Sem time no momento',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: DalehColors.muted, fontSize: 12),
+  Widget _linhaTime(TimeResumo? time, int outrosTimes) {
+    if (time == null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          children: [
+            const Icon(Icons.groups_outlined, size: 16, color: DalehColors.muted),
+            const SizedBox(width: 10),
+            const Text('Sem time no momento', style: TextStyle(color: DalehColors.muted, fontSize: 13)),
+          ],
+        ),
       );
     }
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 14,
-      runSpacing: 10,
-      children: perfil.timesAtuais.map((t) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CrestAvatar(url: t.crestUrl, nome: t.name, tamanho: 36),
-            const SizedBox(height: 4),
-            Text(t.name, style: const TextStyle(color: DalehColors.text, fontSize: 11, fontWeight: FontWeight.w700)),
-          ],
-        );
-      }).toList(),
+
+    final nomeTime = outrosTimes > 0 ? '${time.name} +$outrosTimes' : time.name;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.groups_outlined, size: 16, color: DalehColors.turf),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              nomeTime,
+              style: const TextStyle(color: DalehColors.text, fontWeight: FontWeight.w800, fontSize: 13),
+            ),
+          ),
+          CrestAvatar(url: time.crestUrl, nome: time.name, tamanho: 32),
+        ],
+      ),
     );
   }
 
-  Widget _estatistica(String label, int valor, {Color cor = DalehColors.text}) {
+  Widget _estatistica(String label, int valor) {
     return Expanded(
       child: Column(
         children: [
-          Text('$valor', style: TextStyle(color: cor, fontWeight: FontWeight.w900, fontSize: 26)),
+          Text('$valor', style: const TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 24)),
           const SizedBox(height: 2),
           Text(
             label,
+            textAlign: TextAlign.center,
             style: const TextStyle(color: DalehColors.muted, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.5),
           ),
         ],
@@ -261,23 +222,71 @@ class PlayerCard extends StatelessWidget {
   }
 }
 
-/// Textura de fundo discreta — listras diagonais na cor da grama (lima),
-/// bem baixa opacidade. Mesmo conceito do padrão `fm-stripes` já
-/// referenciado como identidade DALEH desde o protótipo original
-/// (`fullmatch-core.jsx`), não um elemento novo/copiado de terceiros.
-class _ListrasDiagonais extends CustomPainter {
-  const _ListrasDiagonais();
+// Último nome (ou única palavra) fica na 2ª linha, em lima — o resto do
+// nome (quando houver) fica na 1ª linha, branco. Nome com uma palavra só
+// devolve a primeira linha vazia, e o widget mostra só a linha lima.
+(String, String) _partesNome(String nomeCompleto) {
+  final partes = nomeCompleto.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (partes.isEmpty) return ('', '');
+  if (partes.length == 1) return ('', partes.first.toUpperCase());
+  final ultima = partes.removeLast();
+  return (partes.join(' ').toUpperCase(), ultima.toUpperCase());
+}
+
+// Corpo do card: canto superior direito cortado na diagonal (chanfrado),
+// os outros três arredondados — o mesmo desenho é usado tanto no card
+// inteiro quanto no encaixe da foto (com raio/chanfro menores), pra um
+// "aninhar" visualmente no outro.
+Path _caminhoCantoChanfrado(Size size, {required double raio, required double chanfro}) {
+  final w = size.width, h = size.height;
+  return Path()
+    ..moveTo(raio, 0)
+    ..lineTo(w - chanfro, 0)
+    ..lineTo(w, chanfro)
+    ..lineTo(w, h - raio)
+    ..quadraticBezierTo(w, h, w - raio, h)
+    ..lineTo(raio, h)
+    ..quadraticBezierTo(0, h, 0, h - raio)
+    ..lineTo(0, raio)
+    ..quadraticBezierTo(0, 0, raio, 0)
+    ..close();
+}
+
+class _ClipCantoChanfrado extends CustomClipper<Path> {
+  final double raio;
+  final double chanfro;
+  const _ClipCantoChanfrado({required this.raio, required this.chanfro});
+
+  @override
+  Path getClip(Size size) => _caminhoCantoChanfrado(size, raio: raio, chanfro: chanfro);
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+// Preenche o corpo do card (gradiente campo-à-noite já usado no resto do
+// app) e traça a borda lima por cima — desenhado à parte porque `ClipPath`
+// sozinho não sabe desenhar borda numa forma customizada.
+class _MolduraCartao extends CustomPainter {
+  const _MolduraCartao();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = DalehColors.turf.withValues(alpha: 0.035)
-      ..strokeWidth = 10;
-    const espacamento = 22.0;
-    final alcance = size.width + size.height;
-    for (double x = -alcance; x < alcance; x += espacamento) {
-      canvas.drawLine(Offset(x, 0), Offset(x + size.height, size.height), paint);
-    }
+    final caminho = _caminhoCantoChanfrado(size, raio: 24, chanfro: 36);
+
+    final preenchimento = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [DalehColors.surface2, DalehColors.bg],
+      ).createShader(Offset.zero & size);
+    canvas.drawPath(caminho, preenchimento);
+
+    final borda = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..color = DalehColors.turf.withValues(alpha: 0.6);
+    canvas.drawPath(caminho, borda);
   }
 
   @override

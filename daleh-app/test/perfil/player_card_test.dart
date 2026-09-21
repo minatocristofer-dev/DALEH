@@ -72,14 +72,17 @@ void main() {
   testWidgets('mostra nome, posição, cidade, time e estatísticas reais quando tudo está preenchido', (tester) async {
     await tester.pumpWidget(_comTema(PlayerCard(perfil: _perfilCompleto())));
 
-    expect(find.text('CRISTOFER TESTE'), findsOneWidget);
+    // Nome quebrado em 2 linhas (mockup "PLAYER CARD", QA 2026-09-21): o
+    // sobrenome (última palavra) fica destacado, o resto vai numa linha
+    // separada.
+    expect(find.text('CRISTOFER'), findsOneWidget);
+    expect(find.text('TESTE'), findsOneWidget);
     expect(find.text('ALA'), findsOneWidget);
-    expect(find.text('33 anos · Santa Maria / RS'), findsOneWidget);
-    expect(find.text('Pé Direito'), findsOneWidget);
+    expect(find.text('SANTA MARIA / RS · 33 ANOS'), findsOneWidget);
+    expect(find.text('PÉ DIREITO'), findsOneWidget);
     expect(find.text('DALEH FC'), findsOneWidget);
     expect(find.text('12'), findsOneWidget); // jogos
     expect(find.text('5'), findsOneWidget); // gols
-    expect(find.text('Society: Meia'), findsOneWidget);
     expect(find.text('SOBRE'), findsOneWidget);
     expect(find.text('Gosto de jogo intenso, tabelas rápidas e decidir no último passe.'), findsOneWidget);
   });
@@ -90,9 +93,19 @@ void main() {
     expect(find.text('NOVATO'), findsOneWidget);
     expect(find.text('Sem time no momento'), findsOneWidget);
     expect(find.text('0'), findsWidgets); // estatísticas zeradas, reais
-    expect(find.textContaining('anos'), findsNothing, reason: 'sem birthDate, não inventa idade');
-    expect(find.textContaining('Pé '), findsNothing, reason: 'sem dominantFoot, não mostra o chip');
+    expect(find.textContaining('ANOS'), findsNothing, reason: 'sem birthDate, não inventa idade');
+    expect(find.textContaining('PÉ '), findsNothing, reason: 'sem dominantFoot, não mostra a linha');
     expect(find.text('SOBRE'), findsNothing, reason: 'sem bio, não mostra a seção');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('sem foto enviada, mostra o template da camisa em branco (nunca um espaço vazio ou rosto inventado)', (tester) async {
+    await tester.pumpWidget(_comTema(PlayerCard(perfil: _perfilCompleto())));
+
+    final placeholder = tester.widgetList<Image>(find.byType(Image)).where(
+      (img) => img.image is AssetImage && (img.image as AssetImage).assetName == 'assets/jerseys/jersey_solto.png',
+    );
+    expect(placeholder, isNotEmpty);
     expect(tester.takeException(), isNull);
   });
 }

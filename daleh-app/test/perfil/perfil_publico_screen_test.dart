@@ -42,7 +42,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PlayerCard), findsOneWidget);
-    expect(find.text('OUTRO JOGADOR'), findsOneWidget);
+    // Nome quebrado em 2 linhas no card (mockup "PLAYER CARD", QA 2026-09-21).
+    expect(find.text('OUTRO'), findsOneWidget);
+    expect(find.text('JOGADOR'), findsOneWidget);
     expect(find.text('COMPARTILHAR PLAYER CARD'), findsOneWidget);
     // Perfil de terceiro não tem botão de sair (isso só existe no próprio perfil).
     expect(find.text('Sair'), findsNothing);

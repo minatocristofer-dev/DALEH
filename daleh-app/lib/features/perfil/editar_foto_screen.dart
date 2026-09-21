@@ -12,9 +12,9 @@ import 'editar_foto_controller.dart';
 // de um campo novo pra upload do escudo do time, que ainda não existe.
 const _templateAsset = 'assets/jerseys/jersey_solto.png';
 
-// Proporção real do template (1086x1448) — mantém o encaixe da foto
+// Proporção real do template (1672x941) — mantém o encaixe da foto
 // consistente com o corte de pescoço da pose.
-const _aspectoTemplate = 1086 / 1448;
+const _aspectoTemplate = 1672 / 941;
 
 /// Deixa o jogador tirar/escolher uma foto e posicioná-la (arrastar +
 /// pinçar) por trás do template da camisa do DALEH — a área transparente do
