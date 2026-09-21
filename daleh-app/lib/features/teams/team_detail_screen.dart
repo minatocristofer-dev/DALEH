@@ -9,6 +9,7 @@ import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/status_chip.dart';
 import '../../theme/daleh_theme.dart';
 import 'call_ups_tab.dart';
+import 'editar_escudo_screen.dart';
 import 'models/team_member.dart';
 import 'teams_providers.dart';
 
@@ -43,7 +44,7 @@ class TeamDetailScreen extends ConsumerWidget {
 
             return TabBarView(
               children: [
-                _VisaoGeralTab(detail: detail, souDono: souDono),
+                _VisaoGeralTab(detail: detail, souDono: souDono, possoGerenciar: possoGerenciar),
                 _ElencoTab(teamId: teamId, detail: detail, meuUserId: meuUserId, possoGerenciar: possoGerenciar),
                 CallUpsTab(teamId: teamId, possoGerenciar: possoGerenciar),
               ],
@@ -58,7 +59,8 @@ class TeamDetailScreen extends ConsumerWidget {
 class _VisaoGeralTab extends StatelessWidget {
   final TeamDetail detail;
   final bool souDono;
-  const _VisaoGeralTab({required this.detail, required this.souDono});
+  final bool possoGerenciar;
+  const _VisaoGeralTab({required this.detail, required this.souDono, required this.possoGerenciar});
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +74,30 @@ class _VisaoGeralTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Center(child: CrestAvatar(url: d.crestUrl, nome: d.name, tamanho: 88)),
+        Center(
+          child: Stack(
+            children: [
+              CrestAvatar(url: d.crestUrl, nome: d.name, tamanho: 88),
+              // Só quem pode gerenciar o time (dono/capitão/vice) vê o
+              // botão de trocar o escudo — mesma regra checada no backend.
+              if (possoGerenciar)
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => EditarEscudoScreen(teamId: d.id)),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(color: DalehColors.turf, shape: BoxShape.circle),
+                      child: const Icon(Icons.camera_alt, size: 16, color: DalehColors.bg),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
         Center(
           child: Text(d.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22), textAlign: TextAlign.center),

@@ -39,6 +39,20 @@ class TeamsRepository {
     return TeamDetail.fromJson(resp);
   }
 
+  /// Envia o escudo do time pro `POST /teams/:id/crest` — só dono/capitão/
+  /// vice-capitão pode (checado no backend). Sem composição nenhuma aqui, é
+  /// só a imagem escolhida pelo usuário, do jeito que ela é.
+  Future<TeamDetail> enviarEscudo(String teamId, String token, {required List<int> bytes, required String contentType}) async {
+    final resp = await _api.enviarArquivo(
+      '/teams/$teamId/crest',
+      token: token,
+      bytes: bytes,
+      nomeArquivo: 'escudo.png',
+      contentType: contentType,
+    );
+    return TeamDetail.fromJson(resp);
+  }
+
   /// A API só aceita adicionar quem já tem conta no DALEH, por `userId` ou
   /// `email` exato — não existe endpoint de busca/autocomplete de jogadores.
   Future<void> adicionarMembro(String teamId, String token, {String? userId, String? email}) {

@@ -27,6 +27,7 @@ class PerfilRepository {
       token: token,
       bytes: pngBytes,
       nomeArquivo: 'avatar.png',
+      contentType: 'image/png',
     );
     return MeuPerfil.fromJson(resp);
   }

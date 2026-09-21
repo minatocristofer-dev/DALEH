@@ -35,6 +35,7 @@ class FakeApiClient implements ApiClient {
     required String token,
     required List<int> bytes,
     required String nomeArquivo,
+    required String contentType,
   }) async {
     chamadas.add(path);
     return (respostas[path] as Map<String, dynamic>?) ?? {};

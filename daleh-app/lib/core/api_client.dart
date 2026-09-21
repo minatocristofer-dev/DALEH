@@ -148,26 +148,26 @@ class ApiClient {
     return (dados as Map<String, dynamic>?) ?? {};
   }
 
-  // Upload multipart — usado só pra `POST /users/me/avatar` (a foto já vem
-  // composta/achatada do app, sempre PNG; ver `EditarFotoScreen`).
+  // Upload multipart — usado por `POST /users/me/avatar` (foto de perfil) e
+  // `POST /teams/:id/crest` (escudo do time).
   Future<Map<String, dynamic>> enviarArquivo(
     String path, {
     required String token,
     required List<int> bytes,
     required String nomeArquivo,
+    required String contentType,
   }) async {
     final uri = Uri.parse('$apiBaseUrl$path');
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer $token'
       // Sem `contentType`, o pacote `http` manda "application/octet-stream"
       // por padrão — o backend recusa isso (só aceita image/png e
-      // image/jpeg). A foto composta sempre sai como PNG (ver
-      // EditarFotoScreen), então o tipo aqui é fixo.
+      // image/jpeg).
       ..files.add(http.MultipartFile.fromBytes(
         'file',
         bytes,
         filename: nomeArquivo,
-        contentType: MediaType('image', 'png'),
+        contentType: MediaType.parse(contentType),
       ));
 
     http.StreamedResponse streamed;

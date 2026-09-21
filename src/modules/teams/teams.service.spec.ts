@@ -199,6 +199,49 @@ describe('TeamsService — convocar (Fase 9, proteção contra convocação dupl
   });
 });
 
+describe('TeamsService — atualizarEscudo (upload de escudo do time)', () => {
+  let prisma: any;
+  let teamAuth: { exigirCapitaoOuDono: jest.Mock; obterGestoresDoTime: jest.Mock };
+  let notifications: { notificar: jest.Mock };
+  let service: TeamsService;
+
+  const timeSemElenco = { id: 'time-1', name: 'Time 1', crestUrl: 'https://exemplo/novo-escudo.png', members: [] };
+
+  beforeEach(() => {
+    prisma = {
+      team: { findUnique: jest.fn().mockResolvedValue(timeSemElenco), update: jest.fn().mockResolvedValue(timeSemElenco) },
+      matchEvent: { groupBy: jest.fn().mockResolvedValue([]) },
+      matchAttendance: { groupBy: jest.fn().mockResolvedValue([]) },
+    };
+    teamAuth = { exigirCapitaoOuDono: jest.fn().mockResolvedValue(timeSemElenco), obterGestoresDoTime: jest.fn().mockResolvedValue([]) };
+    notifications = { notificar: jest.fn().mockResolvedValue({}) };
+    service = new TeamsService(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      teamAuth as unknown as TeamAuthorizationService,
+    );
+  });
+
+  it('dono/capitão consegue trocar o escudo — atualiza crestUrl e devolve o time atualizado', async () => {
+    const resultado = await service.atualizarEscudo('time-1', 'user-capitao', 'https://exemplo/novo-escudo.png');
+
+    expect(prisma.team.update).toHaveBeenCalledWith({
+      where: { id: 'time-1' },
+      data: { crestUrl: 'https://exemplo/novo-escudo.png' },
+    });
+    expect(resultado).toMatchObject({ id: 'time-1', crestUrl: 'https://exemplo/novo-escudo.png' });
+  });
+
+  it('quem não é dono/capitão/vice-capitão recebe 403 — nada é alterado', async () => {
+    teamAuth.exigirCapitaoOuDono.mockRejectedValue(new ForbiddenException('Você precisa ser capitão ou dono deste time pra fazer isso.'));
+
+    await expect(
+      service.atualizarEscudo('time-1', 'user-intruso', 'https://exemplo/novo-escudo.png'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.team.update).not.toHaveBeenCalled();
+  });
+});
+
 describe('TeamsService — obterTime (Fase visual, estatísticas reais por jogador do elenco)', () => {
   let prisma: any;
   let teamAuth: { exigirCapitaoOuDono: jest.Mock; obterGestoresDoTime: jest.Mock };

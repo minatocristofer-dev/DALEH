@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/api_client.dart';
 import '../../core/auth_storage.dart';
 import '../../core/session_guard.dart';
 import '../auth/auth_controller.dart';
@@ -68,6 +69,17 @@ class TeamsActions {
     await comSessao(ref, (token) => _repo.removerMembro(teamId, alvoUserId, token));
     ref.invalidate(teamDetailProvider(teamId));
     ref.invalidate(meusTimesProvider);
+  }
+
+  Future<String?> enviarEscudo(String teamId, List<int> bytes, String contentType) async {
+    try {
+      await comSessao(ref, (token) => _repo.enviarEscudo(teamId, token, bytes: bytes, contentType: contentType));
+      ref.invalidate(teamDetailProvider(teamId));
+      ref.invalidate(meusTimesProvider);
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
   }
 
   Future<void> convocar(

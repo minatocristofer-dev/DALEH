@@ -53,6 +53,15 @@ export class TeamsService {
     });
   }
 
+  // Só o dono ou capitão/vice-capitão do time pode trocar o escudo — mesma
+  // checagem usada pra convocar/gerenciar elenco. `crestUrl` já vem pronto
+  // de quem fez o upload (SupabaseStorageService).
+  async atualizarEscudo(teamId: string, userId: string, crestUrl: string) {
+    await this.teamAuth.exigirCapitaoOuDono(teamId, userId);
+    await this.prisma.team.update({ where: { id: teamId }, data: { crestUrl } });
+    return this.obterTime(teamId);
+  }
+
   async obterTime(teamId: string) {
     const time = await this.prisma.team.findUnique({
       where: { id: teamId },

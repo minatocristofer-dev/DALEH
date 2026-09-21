@@ -68,8 +68,12 @@ class FakeApiClient implements ApiClient {
     required String token,
     required List<int> bytes,
     required String nomeArquivo,
-  }) =>
-      throw UnimplementedError();
+    required String contentType,
+  }) async {
+    chamadas.add(_ChamadaRegistrada('POST', path, {'contentType': contentType}, token));
+    if (erroParaLancar != null) throw erroParaLancar!;
+    return (respostas[path] as Map<String, dynamic>?) ?? {};
+  }
 }
 
 void main() {
@@ -185,6 +189,29 @@ void main() {
       expect(chamada.metodo, 'PATCH');
       expect(chamada.path, '/call-ups/callup-1/respond');
       expect(chamada.corpo, {'status': 'CONFIRMADO'});
+    });
+
+    test('enviarEscudo faz upload multipart pra /teams/:id/crest e devolve o time atualizado', () async {
+      final fake = FakeApiClient(respostas: {
+        '/teams/time-1/crest': {
+          'id': 'time-1',
+          'name': 'DALEH FC',
+          'crestUrl': 'https://exemplo.supabase.co/storage/v1/object/public/crests/time-1.png',
+          'city': null,
+          'state': null,
+          'ownerId': 'user-1',
+          'members': [],
+        },
+      });
+      final repo = TeamsRepository(fake);
+
+      final time = await repo.enviarEscudo('time-1', token, bytes: [1, 2, 3], contentType: 'image/jpeg');
+
+      expect(time.crestUrl, isNotNull);
+      final chamada = fake.chamadas.single;
+      expect(chamada.metodo, 'POST');
+      expect(chamada.path, '/teams/time-1/crest');
+      expect(chamada.corpo, {'contentType': 'image/jpeg'});
     });
   });
 }

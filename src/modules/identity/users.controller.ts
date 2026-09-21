@@ -12,7 +12,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser, UsuarioAutenticado } from '../../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
-import { SupabaseStorageService } from './supabase-storage.service';
+import { SupabaseStorageService } from '../../common/storage/supabase-storage.service';
 
 const TIPOS_ACEITOS = ['image/png', 'image/jpeg'];
 const TAMANHO_MAXIMO_BYTES = 8 * 1024 * 1024; // 8MB — suficiente pra foto composta com a camisa, sem abrir espaço pra abuso.
@@ -51,7 +51,7 @@ export class UsersController {
       throw new BadRequestException('A foto é grande demais (máximo 8MB).');
     }
 
-    const avatarUrl = await this.storage.enviarAvatar(user.id, arquivo.buffer, arquivo.mimetype);
+    const avatarUrl = await this.storage.enviarImagem('avatars', `${user.id}.png`, arquivo.buffer, arquivo.mimetype);
     return this.authService.atualizarAvatar(user.id, avatarUrl);
   }
 }

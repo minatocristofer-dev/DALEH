@@ -62,6 +62,7 @@ class FakeApiClient implements ApiClient {
     required String token,
     required List<int> bytes,
     required String nomeArquivo,
+    required String contentType,
   }) =>
       throw UnimplementedError();
 }

@@ -22,12 +22,12 @@ const _templateAsset = 'assets/jerseys/jersey_solto.png';
 const _larguraOval = 0.5;
 const _alturaOval = 0.56;
 
-// Quanto o oval "afunda" atrás do colarinho da camisa, em pixels lógicos —
-// fixo, não em fração, porque uma folga em porcentagem some ou vira gap
-// dependendo do tamanho do quadro na tela. Valor achado por teste visual no
-// emulador (QA 2026-09-21): sem isso sobrava uma fresta de fundo sólido
-// entre o queixo e o colarinho.
-const _sobreposicaoOvalCamisa = 22.0;
+// Quanto o oval "afunda" atrás do colarinho da camisa — em FRAÇÃO da altura
+// do quadro, não em pixels fixos. Testado no emulador com pixels fixos
+// (22px) e funcionou lá, mas num celular real com outra densidade/tamanho
+// de tela a mesma folga em pixels vira uma fresta visível de novo (QA
+// 2026-09-21) — fração escala igual em qualquer tela.
+const _sobreposicaoOvalCamisa = 0.035;
 
 /// Deixa o jogador tirar/escolher uma foto e posicioná-la (arrastar +
 /// pinçar) dentro de um recorte oval — o resto do quadro é fundo sólido, sem
@@ -158,10 +158,10 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
                 final alturaCamisa = altura * fracaoCamisaFotoPerfil;
                 final alturaOval = altura * _alturaOval;
                 final larguraOval = largura * _larguraOval;
-                // Sobreposição fixa: o oval desce até ficar por trás do
-                // colarinho, não só encostado nele — sem isso sobra uma
-                // fresta de fundo sólido entre o queixo e a camisa.
-                final baseOval = alturaCamisa - _sobreposicaoOvalCamisa;
+                // O oval desce até ficar por trás do colarinho, não só
+                // encostado nele — sem isso sobra uma fresta de fundo sólido
+                // entre o queixo e a camisa.
+                final baseOval = alturaCamisa - (altura * _sobreposicaoOvalCamisa);
 
                 return Stack(
                   fit: StackFit.expand,
@@ -182,6 +182,14 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
+                          // Sombra suave por trás do rosto — dá uma
+                          // sensação de profundidade/acabamento sem
+                          // desenhar um contorno vistoso em cima de um
+                          // rosto de verdade (um anel lima brilhante em
+                          // volta do rosto ficava com cara de figurinha,
+                          // não de foto — feedback direto do usuário em
+                          // QA, 2026-09-21).
+                          const IgnorePointer(child: CustomPaint(painter: _SombraOval())),
                           ClipOval(
                             child: _foto == null
                                 ? const Icon(Icons.person_outline, size: 48, color: DalehColors.muted)
@@ -213,7 +221,6 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
                                     ),
                                   ),
                           ),
-                          const IgnorePointer(child: CustomPaint(painter: _BordaOval())),
                         ],
                       ),
                     ),
@@ -239,20 +246,21 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
   }
 }
 
-// Contorno do oval — `CircleBorder`/`BoxShape.circle` sempre desenham um
-// círculo perfeito (usam o menor lado da caixa), por isso a borda precisa
-// ser desenhada manualmente com `drawOval`, que respeita largura e altura
-// reais da caixa (não-quadrada, de propósito).
-class _BordaOval extends CustomPainter {
-  const _BordaOval();
+// Sombra suave atrás do oval — só uma pista discreta de profundidade
+// (o rosto "assenta" no quadro em vez de flutuar), nunca um contorno
+// chamativo. `drawOval` (não `CircleBorder`/`BoxShape.circle`, que sempre
+// desenham um círculo perfeito) porque a caixa é propositalmente não
+// quadrada.
+class _SombraOval extends CustomPainter {
+  const _SombraOval();
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..color = DalehColors.turf.withValues(alpha: 0.6);
-    canvas.drawOval(Offset.zero & size, paint);
+      ..color = Colors.black.withValues(alpha: 0.4)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+    final area = Rect.fromLTWH(-4, -2, size.width + 8, size.height + 10);
+    canvas.drawOval(area, paint);
   }
 
   @override

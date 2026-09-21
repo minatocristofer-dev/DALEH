@@ -7,11 +7,12 @@ import { UsersController } from './users.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { SupabaseAuthService } from './supabase-auth.service';
-import { SupabaseStorageService } from './supabase-storage.service';
+import { StorageModule } from '../../common/storage/storage.module';
 
 @Module({
   imports: [
     PassportModule,
+    StorageModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -30,7 +31,7 @@ import { SupabaseStorageService } from './supabase-storage.service';
     }),
   ],
   controllers: [AuthController, UsersController],
-  providers: [AuthService, JwtStrategy, SupabaseAuthService, SupabaseStorageService],
+  providers: [AuthService, JwtStrategy, SupabaseAuthService],
   exports: [AuthService],
 })
 export class IdentityModule {}
