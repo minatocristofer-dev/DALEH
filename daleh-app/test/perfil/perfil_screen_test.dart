@@ -1,10 +1,51 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:daleh_app/core/api_client.dart';
+import 'package:daleh_app/core/auth_storage.dart';
+import 'package:daleh_app/core/supabase_config.dart';
+import 'package:daleh_app/features/auth/auth_controller.dart';
 import 'package:daleh_app/features/perfil/models/meu_perfil.dart';
 import 'package:daleh_app/features/perfil/perfil_providers.dart';
 import 'package:daleh_app/features/perfil/perfil_screen.dart';
 import 'package:daleh_app/features/perfil/widgets/player_card.dart';
+
+/// Mesmo padrão de `sumula_test.dart`: uma storage falsa que registra se
+/// `limpar()` (chamado dentro de `AuthController.sair()`) foi de fato
+/// acionado — sem precisar de login real nem de rede.
+class _AuthStorageDeTeste implements AuthStorage {
+  bool limpou = false;
+  @override
+  Future<void> salvarToken(String token) async {}
+  @override
+  Future<String?> obterToken() async => 'token-de-teste';
+  @override
+  Future<void> limpar() async => limpou = true;
+}
+
+class _ApiClientNuncaUsado implements ApiClient {
+  @override
+  Future<List<dynamic>> getLista(String path, {required String token}) => throw UnimplementedError();
+  @override
+  Future<Map<String, dynamic>> getMapa(String path, {required String token}) => throw UnimplementedError();
+  @override
+  Future<dynamic> postAutenticado(String path, {required String token, Map<String, dynamic>? corpo}) =>
+      throw UnimplementedError();
+  @override
+  Future<Map<String, dynamic>> patchAutenticado(String path, {required String token, Map<String, dynamic>? corpo}) =>
+      throw UnimplementedError();
+  @override
+  Future<Map<String, dynamic>> deleteAutenticado(String path, {required String token}) => throw UnimplementedError();
+  @override
+  Future<String> registrar(Map<String, dynamic> dto) => throw UnimplementedError();
+  @override
+  Future<String> login(String email, String senha) => throw UnimplementedError();
+  @override
+  Future<String> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
+}
 
 MeuPerfil _perfil() {
   return MeuPerfil.fromJson({
@@ -31,7 +72,60 @@ MeuPerfil _perfil() {
   });
 }
 
+/// Monta a tela com uma sessão falsa (token presente, sem rede/Supabase de
+/// verdade) — mesmo preparo de `sumula_test.dart`, necessário só nos testes
+/// que tocam no botão "Sair" (os outros nem chegam a construir o
+/// `authControllerProvider`, porque o `onPressed` só roda quando clicado).
+Future<_AuthStorageDeTeste> _montarComSessao(WidgetTester tester, {required AsyncValue<MeuPerfil> perfil}) async {
+  final storage = _AuthStorageDeTeste();
+  final container = ProviderContainer(
+    overrides: [
+      authStorageProvider.overrideWithValue(storage),
+      apiClientProvider.overrideWithValue(_ApiClientNuncaUsado()),
+      meuPerfilProvider.overrideWith((ref) => perfil.when(
+            data: (p) => Future.value(p),
+            error: (e, _) => Future.error(e),
+            loading: () => Completer<MeuPerfil>().future,
+          )),
+    ],
+  );
+  addTearDown(container.dispose);
+  container.read(authControllerProvider);
+
+  await tester.pumpWidget(
+    UncontrolledProviderScope(container: container, child: const MaterialApp(home: PerfilScreen())),
+  );
+  await tester.pump();
+  await tester.pumpAndSettle();
+  return storage;
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  const canalPrefs = MethodChannel('plugins.flutter.io/shared_preferences');
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    canalPrefs,
+    (call) async => call.method == 'getAll' ? <String, dynamic>{} : null,
+  );
+  setUpAll(() async {
+    await initSupabase();
+  });
+
+  testWidgets('botão "Sair" aparece mesmo quando o perfil não carrega (bug real encontrado em QA)', (tester) async {
+    await _montarComSessao(tester, perfil: const AsyncValue.error('erro de servidor', StackTrace.empty));
+
+    expect(find.byTooltip('Sair'), findsOneWidget);
+  });
+
+  testWidgets('tocar em "Sair" desloga de verdade, mesmo com o perfil em erro', (tester) async {
+    final storage = await _montarComSessao(tester, perfil: const AsyncValue.error('erro de servidor', StackTrace.empty));
+
+    await tester.tap(find.byTooltip('Sair'));
+    await tester.pump();
+
+    expect(storage.limpou, isTrue);
+  });
+
   testWidgets('carrega o perfil real e mostra o Player Card', (tester) async {
     await tester.pumpWidget(
       ProviderScope(

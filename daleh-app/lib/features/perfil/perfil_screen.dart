@@ -14,7 +14,20 @@ class PerfilScreen extends ConsumerWidget {
     final perfilAsync = ref.watch(meuPerfilProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
+      appBar: AppBar(
+        title: const Text('Perfil'),
+        // "Sair" precisa estar sempre acessível, mesmo se o perfil não
+        // carregar (erro de rede/servidor) — antes só existia dentro do
+        // conteúdo carregado, deixando o usuário sem nenhum jeito de sair
+        // da conta quando o `GET /auth/me` falhava.
+        actions: [
+          IconButton(
+            tooltip: 'Sair',
+            icon: const Icon(Icons.logout),
+            onPressed: () => ref.read(authControllerProvider.notifier).sair(),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(meuPerfilProvider),
         child: perfilAsync.when(
@@ -24,15 +37,7 @@ class PerfilScreen extends ConsumerWidget {
           ),
           data: (perfil) => ListView(
             padding: const EdgeInsets.all(20),
-            children: [
-              PlayerCardComCompartilhar(perfil: perfil),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => ref.read(authControllerProvider.notifier).sair(),
-                icon: const Icon(Icons.logout, size: 18),
-                label: const Text('Sair'),
-              ),
-            ],
+            children: [PlayerCardComCompartilhar(perfil: perfil)],
           ),
         ),
       ),

@@ -82,7 +82,15 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> entrarComGoogle() async {
-    await supabase.auth.signInWithOAuth(OAuthProvider.google);
+    // No app nativo (Android/iOS) precisa de um "endereço de retorno" próprio
+    // do app — sem isso, o Supabase tenta voltar pra localhost (usado só em
+    // desenvolvimento web) e o navegador do celular não sabe reabrir o app.
+    // Esse mesmo endereço precisa estar autorizado no painel do Supabase em
+    // Authentication > URL Configuration > Redirect URLs.
+    await supabase.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'com.dalehapp.daleh://login-callback/',
+    );
   }
 
   Future<void> sair() async {
