@@ -29,6 +29,16 @@ class FakeApiClient implements ApiClient {
   Future<String> login(String email, String senha) => throw UnimplementedError();
   @override
   Future<String> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
+  @override
+  Future<Map<String, dynamic>> enviarArquivo(
+    String path, {
+    required String token,
+    required List<int> bytes,
+    required String nomeArquivo,
+  }) async {
+    chamadas.add(path);
+    return (respostas[path] as Map<String, dynamic>?) ?? {};
+  }
 }
 
 void main() {
@@ -98,5 +108,38 @@ void main() {
     expect(fake.chamadas.single, '/users/user-2');
     expect(perfil.fullName, 'Outro Jogador');
     expect(perfil.email, isNull);
+  });
+
+  test('enviarAvatar faz upload multipart pra /users/me/avatar e devolve o MeuPerfil atualizado', () async {
+    final fake = FakeApiClient(respostas: {
+      '/users/me/avatar': {
+        'id': 'user-1',
+        'fullName': 'Jogador Teste',
+        'email': 'jogador@teste.com',
+        'avatarUrl': 'https://exemplo.supabase.co/storage/v1/object/public/avatars/user-1.png',
+        'city': null,
+        'state': null,
+        'dominantFoot': null,
+        'bio': null,
+        'modalidades': [],
+        'estatisticas': {
+          'jogosDisputados': 0,
+          'gols': 0,
+          'assistencias': 0,
+          'cartoesAmarelos': 0,
+          'cartoesVermelhos': 0,
+          'mvp': 0,
+          'convocacoes': 0,
+        },
+        'timesAtuais': [],
+        'timesAnteriores': [],
+      },
+    });
+    final repo = PerfilRepository(fake);
+
+    final perfil = await repo.enviarAvatar([1, 2, 3], token);
+
+    expect(fake.chamadas.single, '/users/me/avatar');
+    expect(perfil.avatarUrl, isNotNull);
   });
 }

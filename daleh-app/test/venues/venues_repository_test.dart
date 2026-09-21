@@ -56,6 +56,14 @@ class FakeApiClient implements ApiClient {
   Future<String> login(String email, String senha) => throw UnimplementedError();
   @override
   Future<String> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
+  @override
+  Future<Map<String, dynamic>> enviarArquivo(
+    String path, {
+    required String token,
+    required List<int> bytes,
+    required String nomeArquivo,
+  }) =>
+      throw UnimplementedError();
 }
 
 void main() {
