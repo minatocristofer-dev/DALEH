@@ -47,6 +47,8 @@ dependencies:
   share_plus: ^10.1.4
   # Salvar a imagem do Player Card num arquivo temporário antes de compartilhar
   path_provider: ^2.1.5
+  # Tirar foto (câmera) ou escolher da galeria pra encaixar na camisa do DALEH
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -70,10 +72,14 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  # Modelos de "torso com camisa do DALEH" — usados no encaixe da foto de
+  # perfil do jogador (ver PoseCamisaDaleh). Gerados por IA de imagem sob
+  # direção do usuário, cortados no pescoço e com fundo transparente, pra
+  # a foto do rosto do jogador ser encaixada por cima.
+  assets:
+    - assets/jerseys/jersey_solto.png
+    - assets/jerseys/jersey_bracos_cruzados.png
+    - assets/jerseys/jersey_super_heroi.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -18,4 +18,16 @@ class PerfilRepository {
     final resp = await _api.getMapa('/users/$userId', token: token);
     return MeuPerfil.fromJson(resp);
   }
+
+  /// Envia a foto já composta (rosto encaixado na camisa do DALEH, achatada
+  /// num único PNG pelo `EditarFotoScreen`) pro `POST /users/me/avatar`.
+  Future<MeuPerfil> enviarAvatar(List<int> pngBytes, String token) async {
+    final resp = await _api.enviarArquivo(
+      '/users/me/avatar',
+      token: token,
+      bytes: pngBytes,
+      nomeArquivo: 'avatar.png',
+    );
+    return MeuPerfil.fromJson(resp);
+  }
 }

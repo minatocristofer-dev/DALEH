@@ -7,6 +7,7 @@ import { UsersController } from './users.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { SupabaseAuthService } from './supabase-auth.service';
+import { SupabaseStorageService } from './supabase-storage.service';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { SupabaseAuthService } from './supabase-auth.service';
     }),
   ],
   controllers: [AuthController, UsersController],
-  providers: [AuthService, JwtStrategy, SupabaseAuthService],
+  providers: [AuthService, JwtStrategy, SupabaseAuthService, SupabaseStorageService],
   exports: [AuthService],
 })
 export class IdentityModule {}

@@ -146,4 +146,34 @@ class ApiClient {
     final dados = await _request('DELETE', path, token: token);
     return (dados as Map<String, dynamic>?) ?? {};
   }
+
+  // Upload multipart — usado só pra `POST /users/me/avatar` (a foto já vem
+  // composta/achatada do app, sempre PNG; ver `EditarFotoScreen`).
+  Future<Map<String, dynamic>> enviarArquivo(
+    String path, {
+    required String token,
+    required List<int> bytes,
+    required String nomeArquivo,
+  }) async {
+    final uri = Uri.parse('$apiBaseUrl$path');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: nomeArquivo));
+
+    http.StreamedResponse streamed;
+    try {
+      streamed = await request.send();
+    } on SocketException {
+      throw ApiException('Sem conexão com a internet. Verifica sua rede e tenta de novo.', kind: ApiErrorKind.network);
+    } on http.ClientException {
+      throw ApiException('Não foi possível falar com o servidor do DALEH.', kind: ApiErrorKind.network);
+    }
+
+    final resp = await http.Response.fromStream(streamed);
+    final corpoResp = resp.body.isNotEmpty ? jsonDecode(resp.body) : null;
+    if (resp.statusCode < 200 || resp.statusCode >= 300) {
+      throw ApiException.deStatus(resp.statusCode, corpoResp);
+    }
+    return (corpoResp as Map<String, dynamic>?) ?? {};
+  }
 }

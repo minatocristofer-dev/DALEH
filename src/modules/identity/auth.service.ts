@@ -258,6 +258,13 @@ export class AuthService {
     return this.montarPerfil(userId);
   }
 
+  // Só troca o avatarUrl — nunca inventa/apaga nenhum outro campo do
+  // perfil. A URL já vem pronta de quem fez o upload (SupabaseStorageService).
+  async atualizarAvatar(userId: string, avatarUrl: string) {
+    await this.prisma.user.update({ where: { id: userId }, data: { avatarUrl } });
+    return this.montarPerfil(userId);
+  }
+
   // Perfil público (Fase 7) — qualquer usuário autenticado pode ver o de
   // qualquer outro (sem exigir time/jogo em comum, por decisão explícita do
   // prompt desta fase). Mesmo formato de `me()`, só sem o e-mail.

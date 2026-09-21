@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../auth/auth_controller.dart';
+import 'editar_foto_screen.dart';
 import 'perfil_providers.dart';
 import 'widgets/player_card_com_compartilhar.dart';
 
@@ -21,6 +22,11 @@ class PerfilScreen extends ConsumerWidget {
         // conteúdo carregado, deixando o usuário sem nenhum jeito de sair
         // da conta quando o `GET /auth/me` falhava.
         actions: [
+          IconButton(
+            tooltip: 'Trocar foto de perfil',
+            icon: const Icon(Icons.camera_alt_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EditarFotoScreen())),
+          ),
           IconButton(
             tooltip: 'Sair',
             icon: const Icon(Icons.logout),

@@ -4,6 +4,12 @@
          entram no build de release/AAB. O app inteiro depende de HTTP pra
          falar com a API do DALEH, então essa permissão é obrigatória aqui. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Tirar foto pra encaixar na camisa do DALEH (editar_foto_screen.dart)
+         — sem isso o image_picker falha ao abrir a câmera em runtime.
+         Escolher da galeria não precisa de nenhuma permissão declarada aqui
+         (Android 13+ usa o seletor de fotos do sistema, que não exige
+         READ_MEDIA_IMAGES pro nosso caso de uso). -->
+    <uses-permission android:name="android.permission.CAMERA"/>
     <application
         android:label="DALEH"
         android:name="${applicationName}"
