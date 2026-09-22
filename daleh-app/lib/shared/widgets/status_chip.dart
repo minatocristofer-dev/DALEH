@@ -9,7 +9,7 @@ class StatusChip extends StatelessWidget {
 
   /// Papéis vêm exatamente do enum PapelTime do backend — não inventar rótulo novo.
   factory StatusChip.papel(String papel, {required bool souDono}) {
-    if (souDono) return const StatusChip(texto: 'DONO', cor: DalehColors.amber);
+    if (souDono) return const StatusChip(texto: 'ADMINISTRADOR', cor: DalehColors.amber);
     switch (papel) {
       case 'CAPITAO':
         return const StatusChip(texto: 'CAPITÃO', cor: DalehColors.turf);

@@ -114,12 +114,12 @@ class _VisaoGeralTab extends StatelessWidget {
               children: [
                 _linhaInfo('Jogadores no elenco', '${d.members.length}'),
                 const Divider(color: DalehColors.line, height: 24),
-                _linhaInfo('Dono do time', dono?.fullName ?? '—'),
+                _linhaInfo('Administrador do time', dono?.fullName ?? '—'),
                 if (souDono) ...[
                   const Divider(color: DalehColors.line, height: 24),
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [StatusChip(texto: 'VOCÊ É O DONO', cor: DalehColors.amber)],
+                    children: [StatusChip(texto: 'VOCÊ É O ADMINISTRADOR', cor: DalehColors.amber)],
                   ),
                 ],
               ],
