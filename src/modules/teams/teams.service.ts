@@ -29,7 +29,7 @@ export class TeamsService {
       });
 
       await tx.teamMember.create({
-        data: { teamId: time.id, userId, papel: 'CAPITAO', status: 'active' },
+        data: { teamId: time.id, userId, papel: 'CAPITAO', status: 'active', criadoEm: new Date() },
       });
 
       return time;
@@ -161,13 +161,16 @@ export class TeamsService {
       if (existente.status === 'active') {
         throw new ConflictException('Esse jogador já está no elenco.');
       }
+      // Reentrou no time (saiu e voltou) — a data de entrada é atualizada
+      // pra hoje, porque é a passagem ATUAL que importa pro "há quanto
+      // tempo está no time", não a antiga.
       membro = await this.prisma.teamMember.update({
         where: { id: existente.id },
-        data: { status: 'active', papel: 'JOGADOR' },
+        data: { status: 'active', papel: 'JOGADOR', criadoEm: new Date() },
       });
     } else {
       membro = await this.prisma.teamMember.create({
-        data: { teamId, userId: jogador.id, papel: 'JOGADOR', status: 'active' },
+        data: { teamId, userId: jogador.id, papel: 'JOGADOR', status: 'active', criadoEm: new Date() },
       });
     }
 

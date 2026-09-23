@@ -37,6 +37,9 @@ class TeamMember {
   // Escolhido pelo administrador/capitão do time, nunca pelo próprio
   // jogador — null até alguém definir (nunca inventado).
   final int? numeroCamisa;
+  // Desde quando essa passagem pelo time está valendo (TeamMember.criadoEm)
+  // — null pra quem já estava no elenco antes dessa fase, nunca inventado.
+  final DateTime? desde;
   final EstatisticasNoTime estatisticas;
 
   TeamMember({
@@ -49,6 +52,7 @@ class TeamMember {
     this.avatarUrl,
     this.posicaoPrincipal,
     this.numeroCamisa,
+    this.desde,
     required this.estatisticas,
   });
 
@@ -64,6 +68,7 @@ class TeamMember {
       avatarUrl: user?['avatarUrl'] as String?,
       posicaoPrincipal: json['posicaoPrincipal'] as String?,
       numeroCamisa: json['numeroCamisa'] as int?,
+      desde: json['criadoEm'] != null ? DateTime.parse(json['criadoEm'] as String) : null,
       estatisticas: EstatisticasNoTime.fromJson(json['estatisticas'] as Map<String, dynamic>?),
     );
   }

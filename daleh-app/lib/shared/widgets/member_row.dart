@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../features/perfil/perfil_publico_screen.dart';
 import '../../features/teams/models/team_member.dart';
 import '../../theme/daleh_theme.dart';
+import '../tempo_no_time.dart';
 import 'crest_avatar.dart';
 import 'status_chip.dart';
 
@@ -86,7 +87,10 @@ class MemberRow extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          membro.posicaoPrincipal ?? 'Sem modalidade cadastrada',
+                          [
+                            membro.posicaoPrincipal ?? 'Sem modalidade cadastrada',
+                            if (membro.desde != null) tempoNoTime(membro.desde!),
+                          ].join(' · '),
                           style: const TextStyle(color: DalehColors.muted, fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

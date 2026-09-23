@@ -325,6 +325,61 @@ describe('TeamsService — atualizarEscudo (upload de escudo do time)', () => {
   });
 });
 
+describe('TeamsService — data de entrada no time (criarTime e adicionarMembro)', () => {
+  let prisma: any;
+  let teamAuth: { exigirCapitaoOuDono: jest.Mock; obterGestoresDoTime: jest.Mock };
+  let notifications: { notificar: jest.Mock };
+  let service: TeamsService;
+
+  beforeEach(() => {
+    prisma = {
+      team: {
+        create: jest.fn().mockResolvedValue({ id: 'time-1', name: 'Time Novo' }),
+        findUnique: jest.fn().mockResolvedValue({ id: 'time-1', name: 'Time Novo' }),
+      },
+      teamMember: {
+        create: jest.fn().mockImplementation(({ data }: any) => Promise.resolve({ id: 'membro-1', ...data })),
+        update: jest.fn().mockImplementation(({ data }: any) => Promise.resolve({ id: 'membro-existente', ...data })),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      user: { findUnique: jest.fn().mockResolvedValue({ id: 'user-2', email: 'jogador@teste.com' }) },
+      $transaction: jest.fn((fn: any) => fn(prisma)),
+    };
+    teamAuth = { exigirCapitaoOuDono: jest.fn().mockResolvedValue({ id: 'time-1' }), obterGestoresDoTime: jest.fn().mockResolvedValue([]) };
+    notifications = { notificar: jest.fn().mockResolvedValue({}) };
+    service = new TeamsService(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      teamAuth as unknown as TeamAuthorizationService,
+    );
+  });
+
+  it('criarTime grava a data de entrada do capitão fundador (nunca null pra quem acabou de criar)', async () => {
+    await service.criarTime('user-capitao', { name: 'Time Novo' } as any);
+
+    const dadosCriados = prisma.teamMember.create.mock.calls[0][0].data;
+    expect(dadosCriados.criadoEm).toBeInstanceOf(Date);
+  });
+
+  it('adicionarMembro (jogador novo no elenco) grava a data de entrada dele', async () => {
+    await service.adicionarMembro('time-1', 'user-capitao', { email: 'jogador@teste.com' } as any);
+
+    const dadosCriados = prisma.teamMember.create.mock.calls[0][0].data;
+    expect(dadosCriados.criadoEm).toBeInstanceOf(Date);
+  });
+
+  it('readicionar um jogador removido ATUALIZA a data de entrada — vale a passagem atual, não a antiga', async () => {
+    const dataAntiga = new Date('2024-01-10');
+    prisma.teamMember.findUnique.mockResolvedValue({ id: 'membro-existente', status: 'removed', criadoEm: dataAntiga });
+
+    await service.adicionarMembro('time-1', 'user-capitao', { email: 'jogador@teste.com' } as any);
+
+    const dadosAtualizados = prisma.teamMember.update.mock.calls[0][0].data;
+    expect(dadosAtualizados.criadoEm).toBeInstanceOf(Date);
+    expect(dadosAtualizados.criadoEm.getTime()).not.toBe(dataAntiga.getTime());
+  });
+});
+
 describe('TeamsService — obterTime (Fase visual, estatísticas reais por jogador do elenco)', () => {
   let prisma: any;
   let teamAuth: { exigirCapitaoOuDono: jest.Mock; obterGestoresDoTime: jest.Mock };

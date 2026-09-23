@@ -67,8 +67,11 @@ class TimeResumo {
   // Escolhido pelo administrador/capitão do time, nunca pelo próprio
   // jogador — null até alguém definir.
   final int? numeroCamisa;
+  // Desde quando o jogador está NESTE time — null pra quem já estava no
+  // elenco antes dessa fase, nunca inventado (ver AuthService.montarPerfil).
+  final DateTime? desde;
 
-  TimeResumo({required this.id, required this.name, this.crestUrl, this.papel, this.numeroCamisa});
+  TimeResumo({required this.id, required this.name, this.crestUrl, this.papel, this.numeroCamisa, this.desde});
 
   factory TimeResumo.fromJson(Map<String, dynamic> json) {
     return TimeResumo(
@@ -77,6 +80,7 @@ class TimeResumo {
       crestUrl: json['crestUrl'] as String?,
       papel: json['papel'] as String?,
       numeroCamisa: json['numeroCamisa'] as int?,
+      desde: json['desde'] != null ? DateTime.parse(json['desde'] as String) : null,
     );
   }
 }

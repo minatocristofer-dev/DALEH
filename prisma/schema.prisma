@@ -194,6 +194,15 @@ model TeamMember {
   // deve valer entre membros ativos (ver TeamsService.atualizarMembro), e
   // um membro removido não pode travar esse número pra sempre.
   numeroCamisa Int?      @map("numero_camisa")
+  // Desde quando essa passagem pelo time está valendo — setado explicitamente
+  // pelo backend no momento da entrada (TeamsService.criarTime/
+  // adicionarMembro), nunca por um `@default(now())` no banco: isso faria
+  // toda linha já existente antes desta migration ganhar a data da migration
+  // (hoje), o que seria inventar um dado que a gente não tem. Fica null pra
+  // quem já estava no elenco antes disso — só passa a existir pra quem
+  // entra a partir de agora. Ao reentrar num time (saiu e voltou), essa
+  // data é atualizada, porque é a passagem ATUAL que importa.
+  criadoEm     DateTime? @map("created_at")
 
   @@unique([teamId, userId])
   @@map("team_members")

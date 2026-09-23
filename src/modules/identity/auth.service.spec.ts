@@ -248,6 +248,53 @@ describe('AuthService', () => {
       expect(perfil.timesAnteriores).toEqual([{ id: 'time-2', name: 'Ex-Time', crestUrl: null }]);
     });
 
+    it('timesAtuais inclui número da camisa e data de entrada quando o TeamMember já tem esses dados', async () => {
+      const dataDeEntrada = new Date('2026-03-15T00:00:00.000Z');
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        fullName: 'Jogador Teste',
+        email: 'jogador@teste.com',
+        avatarUrl: null,
+        city: null,
+        state: null,
+        playerProfile: null,
+        playerModalidades: [],
+      });
+      prisma.teamMember.findMany.mockResolvedValue([
+        {
+          papel: 'CAPITAO',
+          status: 'active',
+          numeroCamisa: 10,
+          criadoEm: dataDeEntrada,
+          team: { id: 'time-1', name: 'DALEH FC', crestUrl: null },
+        },
+      ]);
+
+      const perfil = await service.me('user-1');
+
+      expect(perfil.timesAtuais[0]).toMatchObject({ numeroCamisa: 10, desde: dataDeEntrada });
+    });
+
+    it('timesAtuais devolve desde=null pra quem já estava no elenco antes desta fase (nunca inventa a data)', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        fullName: 'Jogador Teste',
+        email: 'jogador@teste.com',
+        avatarUrl: null,
+        city: null,
+        state: null,
+        playerProfile: null,
+        playerModalidades: [],
+      });
+      prisma.teamMember.findMany.mockResolvedValue([
+        { papel: 'JOGADOR', status: 'active', numeroCamisa: null, criadoEm: null, team: { id: 'time-1', name: 'DALEH FC', crestUrl: null } },
+      ]);
+
+      const perfil = await service.me('user-1');
+
+      expect(perfil.timesAtuais[0]).toMatchObject({ numeroCamisa: null, desde: null });
+    });
+
     it('conta "jogos disputados" excluindo partida cancelada e partida futura (Fase 7 — risco 1)', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: 'user-1',

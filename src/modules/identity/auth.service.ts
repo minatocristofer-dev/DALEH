@@ -250,6 +250,9 @@ export class AuthService {
           crestUrl: m.team.crestUrl,
           papel: m.papel,
           numeroCamisa: m.numeroCamisa,
+          // Null pra quem já estava no elenco antes desta fase — ver
+          // comentário do campo no schema.prisma.
+          desde: m.criadoEm,
         })),
       timesAnteriores: memberships
         .filter((m) => m.status === 'removed')

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/tempo_no_time.dart';
 import '../../../shared/widgets/crest_avatar.dart';
 import '../../../theme/daleh_theme.dart';
 import '../foto_perfil_layout.dart';
@@ -237,13 +238,27 @@ class PlayerCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const Icon(Icons.groups_outlined, size: 16, color: DalehColors.turf),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              nomeTime,
-              style: const TextStyle(color: DalehColors.text, fontWeight: FontWeight.w800, fontSize: 13),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  nomeTime,
+                  style: const TextStyle(color: DalehColors.text, fontWeight: FontWeight.w800, fontSize: 13),
+                ),
+                // Só aparece pra quem entrou depois dessa fase — quem já
+                // estava no elenco antes não tem essa data (nunca inventada).
+                if (time.desde != null)
+                  Text(
+                    tempoNoTime(time.desde!),
+                    style: const TextStyle(color: DalehColors.muted, fontSize: 10),
+                  ),
+              ],
             ),
           ),
           CrestAvatar(url: time.crestUrl, nome: time.name, tamanho: 32),
