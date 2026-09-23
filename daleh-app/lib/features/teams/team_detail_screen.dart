@@ -187,6 +187,7 @@ class _ElencoTab extends ConsumerWidget {
               }
             },
             onRemover: () => _confirmarRemocao(context, ref, teamId, membro, souEuMesmo),
+            onEditarNumero: () => _editarNumero(context, ref, teamId, membro),
           );
         },
       ),
@@ -195,6 +196,64 @@ class _ElencoTab extends ConsumerWidget {
 
   void _mostrarErro(BuildContext context, ApiException e) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+  }
+
+  // Quem escolhe o número é o administrador/capitão, nunca o próprio
+  // jogador — por isso esse diálogo só aparece a partir do menu de gestão
+  // do elenco, não em nenhuma tela que o jogador acesse sobre si mesmo.
+  Future<void> _editarNumero(BuildContext context, WidgetRef ref, String teamId, TeamMember membro) async {
+    final controlador = TextEditingController(text: membro.numeroCamisa?.toString() ?? '');
+    String? erro;
+
+    final numero = await showDialog<int?>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          return AlertDialog(
+            title: Text('Número da camisa — ${membro.fullName}'),
+            content: TextField(
+              controller: controlador,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(labelText: 'Número', errorText: erro),
+            ),
+            actions: [
+              if (membro.numeroCamisa != null)
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(null),
+                  child: const Text('Limpar', style: TextStyle(color: DalehColors.danger)),
+                ),
+              TextButton(onPressed: () => Navigator.of(ctx).pop(membro.numeroCamisa), child: const Text('Cancelar')),
+              TextButton(
+                onPressed: () {
+                  final texto = controlador.text.trim();
+                  if (texto.isEmpty) {
+                    Navigator.of(ctx).pop(null);
+                    return;
+                  }
+                  final valor = int.tryParse(texto);
+                  if (valor == null || valor < 0) {
+                    setState(() => erro = 'Digite um número válido.');
+                    return;
+                  }
+                  Navigator.of(ctx).pop(valor);
+                },
+                child: const Text('Salvar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    // Cancelar devolve o número atual sem mudar nada — só chama a API se o
+    // valor realmente for diferente do que já estava.
+    if (numero == membro.numeroCamisa) return;
+
+    final erroApi = await ref.read(teamsActionsProvider).definirNumeroCamisa(teamId, membro.userId, membro.papel, numero);
+    if (erroApi != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erroApi)));
+    }
   }
 
   Future<void> _confirmarRemocao(

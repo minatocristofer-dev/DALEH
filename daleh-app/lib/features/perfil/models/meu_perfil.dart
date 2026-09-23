@@ -64,8 +64,11 @@ class TimeResumo {
   final String name;
   final String? crestUrl;
   final String? papel;
+  // Escolhido pelo administrador/capitão do time, nunca pelo próprio
+  // jogador — null até alguém definir.
+  final int? numeroCamisa;
 
-  TimeResumo({required this.id, required this.name, this.crestUrl, this.papel});
+  TimeResumo({required this.id, required this.name, this.crestUrl, this.papel, this.numeroCamisa});
 
   factory TimeResumo.fromJson(Map<String, dynamic> json) {
     return TimeResumo(
@@ -73,6 +76,7 @@ class TimeResumo {
       name: json['name'] as String,
       crestUrl: json['crestUrl'] as String?,
       papel: json['papel'] as String?,
+      numeroCamisa: json['numeroCamisa'] as int?,
     );
   }
 }

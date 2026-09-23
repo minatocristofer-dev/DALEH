@@ -244,7 +244,13 @@ export class AuthService {
       estatisticas: { jogosDisputados, gols, assistencias, cartoesAmarelos, cartoesVermelhos, mvp, convocacoes },
       timesAtuais: memberships
         .filter((m) => m.status === 'active')
-        .map((m) => ({ id: m.team.id, name: m.team.name, crestUrl: m.team.crestUrl, papel: m.papel })),
+        .map((m) => ({
+          id: m.team.id,
+          name: m.team.name,
+          crestUrl: m.team.crestUrl,
+          papel: m.papel,
+          numeroCamisa: m.numeroCamisa,
+        })),
       timesAnteriores: memberships
         .filter((m) => m.status === 'removed')
         .map((m) => ({ id: m.team.id, name: m.team.name, crestUrl: m.team.crestUrl })),

@@ -199,6 +199,89 @@ describe('TeamsService — convocar (Fase 9, proteção contra convocação dupl
   });
 });
 
+describe('TeamsService — atualizarMembro (papel e número da camisa)', () => {
+  let prisma: any;
+  let teamAuth: { exigirCapitaoOuDono: jest.Mock; obterGestoresDoTime: jest.Mock };
+  let notifications: { notificar: jest.Mock };
+  let service: TeamsService;
+
+  const membroAtivo = { id: 'membro-1', teamId: 'time-1', userId: 'user-alvo', papel: 'JOGADOR', status: 'active', numeroCamisa: null };
+
+  beforeEach(() => {
+    prisma = {
+      teamMember: {
+        findUnique: jest.fn().mockResolvedValue(membroAtivo),
+        findFirst: jest.fn().mockResolvedValue(null),
+        update: jest.fn().mockImplementation(({ data }: any) => Promise.resolve({ ...membroAtivo, ...data })),
+      },
+    };
+    teamAuth = { exigirCapitaoOuDono: jest.fn().mockResolvedValue({ id: 'time-1' }), obterGestoresDoTime: jest.fn().mockResolvedValue([]) };
+    notifications = { notificar: jest.fn().mockResolvedValue({}) };
+    service = new TeamsService(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      teamAuth as unknown as TeamAuthorizationService,
+    );
+  });
+
+  it('administrador define o número da camisa de um jogador do elenco', async () => {
+    const resultado = await service.atualizarMembro('time-1', 'user-alvo', 'user-capitao', {
+      papel: 'JOGADOR',
+      numeroCamisa: 10,
+    } as any);
+
+    expect(prisma.teamMember.update).toHaveBeenCalledWith({
+      where: { id: 'membro-1' },
+      data: { papel: 'JOGADOR', numeroCamisa: 10 },
+    });
+    expect(resultado.numeroCamisa).toBe(10);
+  });
+
+  it('número já usado por outro jogador ATIVO do mesmo time é rejeitado com 409 — nada é alterado', async () => {
+    prisma.teamMember.findFirst.mockResolvedValue({ id: 'membro-2', numeroCamisa: 10 });
+
+    await expect(
+      service.atualizarMembro('time-1', 'user-alvo', 'user-capitao', { papel: 'JOGADOR', numeroCamisa: 10 } as any),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.teamMember.update).not.toHaveBeenCalled();
+  });
+
+  it('número que já foi de um jogador removido pode ser reaproveitado — a checagem só olha status ativo', async () => {
+    // prisma.teamMember.findFirst já filtra por status:'active' na query
+    // real; aqui simulamos exatamente esse filtro não encontrando ninguém.
+    await service.atualizarMembro('time-1', 'user-alvo', 'user-capitao', { papel: 'JOGADOR', numeroCamisa: 10 } as any);
+
+    expect(prisma.teamMember.findFirst).toHaveBeenCalledWith({
+      where: { teamId: 'time-1', status: 'active', numeroCamisa: 10, id: { not: 'membro-1' } },
+    });
+  });
+
+  it('trocar só o papel, sem mandar numeroCamisa, não mexe no número que o jogador já tinha', async () => {
+    prisma.teamMember.findUnique.mockResolvedValue({ ...membroAtivo, numeroCamisa: 7 });
+
+    await service.atualizarMembro('time-1', 'user-alvo', 'user-capitao', { papel: 'CAPITAO' } as any);
+
+    expect(prisma.teamMember.update).toHaveBeenCalledWith({ where: { id: 'membro-1' }, data: { papel: 'CAPITAO' } });
+  });
+
+  it('mandar numeroCamisa null limpa o número — não é a mesma coisa que omitir o campo', async () => {
+    await service.atualizarMembro('time-1', 'user-alvo', 'user-capitao', { papel: 'JOGADOR', numeroCamisa: null } as any);
+
+    expect(prisma.teamMember.update).toHaveBeenCalledWith({
+      where: { id: 'membro-1' },
+      data: { papel: 'JOGADOR', numeroCamisa: null },
+    });
+  });
+
+  it('jogador que não está mais no elenco (removido) devolve 404', async () => {
+    prisma.teamMember.findUnique.mockResolvedValue({ ...membroAtivo, status: 'removed' });
+
+    await expect(
+      service.atualizarMembro('time-1', 'user-alvo', 'user-capitao', { papel: 'JOGADOR', numeroCamisa: 10 } as any),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
 describe('TeamsService — atualizarEscudo (upload de escudo do time)', () => {
   let prisma: any;
   let teamAuth: { exigirCapitaoOuDono: jest.Mock; obterGestoresDoTime: jest.Mock };

@@ -193,7 +193,25 @@ export class TeamsService {
       throw new NotFoundException('Esse jogador não está no elenco.');
     }
 
-    return this.prisma.teamMember.update({ where: { id: membro.id }, data: { papel: dto.papel } });
+    // Só checa duplicidade entre membros ATIVOS — um número que ficou com
+    // alguém que já saiu do time não pode travar aquele número pra sempre
+    // (por isso não existe constraint de unicidade no banco, ver schema).
+    if (dto.numeroCamisa != null) {
+      const jaUsado = await this.prisma.teamMember.findFirst({
+        where: { teamId, status: 'active', numeroCamisa: dto.numeroCamisa, id: { not: membro.id } },
+      });
+      if (jaUsado) {
+        throw new ConflictException(`O número ${dto.numeroCamisa} já está sendo usado por outro jogador deste time.`);
+      }
+    }
+
+    return this.prisma.teamMember.update({
+      where: { id: membro.id },
+      data: {
+        papel: dto.papel,
+        ...(dto.numeroCamisa !== undefined ? { numeroCamisa: dto.numeroCamisa } : {}),
+      },
+    });
   }
 
   async removerMembro(teamId: string, alvoUserId: string, userId: string) {

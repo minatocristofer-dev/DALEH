@@ -3,6 +3,11 @@ import 'models/call_up.dart';
 import 'models/team.dart';
 import 'models/team_member.dart';
 
+// Sentinela pra distinguir "não mandei o campo numeroCamisa" (omitido) de
+// "mandei null de propósito" (limpar o número) — um valor default `null`
+// normal não deixaria diferenciar os dois casos.
+const _naoInformado = Object();
+
 /// Só chama os endpoints que já existem em `src/modules/teams` — nenhum
 /// endpoint foi inventado aqui. Ver mapeamento completo no relatório da Fase 1.
 class TeamsRepository {
@@ -66,8 +71,25 @@ class TeamsRepository {
     );
   }
 
-  Future<void> atualizarPapel(String teamId, String alvoUserId, String token, {required String papel}) {
-    return _api.patchAutenticado('/teams/$teamId/members/$alvoUserId', token: token, corpo: {'papel': papel});
+  // `numeroCamisa` é opcional na API (omitido = não mexe no número atual;
+  // `null` explícito = limpa; um inteiro = define) — mas o `papel` é sempre
+  // obrigatório, então quem só quer trocar o número precisa reenviar o
+  // papel atual do jogador junto.
+  Future<void> atualizarPapel(
+    String teamId,
+    String alvoUserId,
+    String token, {
+    required String papel,
+    Object? numeroCamisa = _naoInformado,
+  }) {
+    return _api.patchAutenticado(
+      '/teams/$teamId/members/$alvoUserId',
+      token: token,
+      corpo: {
+        'papel': papel,
+        if (!identical(numeroCamisa, _naoInformado)) 'numeroCamisa': numeroCamisa,
+      },
+    );
   }
 
   Future<void> removerMembro(String teamId, String alvoUserId, String token) {

@@ -138,6 +138,38 @@ void main() {
       expect(chamada.corpo, {'email': 'jogador@teste.com'});
     });
 
+    test('atualizarPapel sem numeroCamisa manda só o papel — não mexe no número atual do jogador', () async {
+      final fake = FakeApiClient();
+      final repo = TeamsRepository(fake);
+
+      await repo.atualizarPapel('time-1', 'user-alvo', token, papel: 'CAPITAO');
+
+      final chamada = fake.chamadas.single;
+      expect(chamada.metodo, 'PATCH');
+      expect(chamada.path, '/teams/time-1/members/user-alvo');
+      expect(chamada.corpo, {'papel': 'CAPITAO'});
+    });
+
+    test('atualizarPapel com numeroCamisa define o número junto do papel atual', () async {
+      final fake = FakeApiClient();
+      final repo = TeamsRepository(fake);
+
+      await repo.atualizarPapel('time-1', 'user-alvo', token, papel: 'JOGADOR', numeroCamisa: 10);
+
+      final chamada = fake.chamadas.single;
+      expect(chamada.corpo, {'papel': 'JOGADOR', 'numeroCamisa': 10});
+    });
+
+    test('atualizarPapel com numeroCamisa null manda o null explícito — é "limpar", não "não mexer"', () async {
+      final fake = FakeApiClient();
+      final repo = TeamsRepository(fake);
+
+      await repo.atualizarPapel('time-1', 'user-alvo', token, papel: 'JOGADOR', numeroCamisa: null);
+
+      final chamada = fake.chamadas.single;
+      expect(chamada.corpo, {'papel': 'JOGADOR', 'numeroCamisa': null});
+    });
+
     test('removerMembro propaga ApiException de 403 (usuário sem permissão)', () async {
       final fake = FakeApiClient()..erroParaLancar = ApiException('Sem permissão', kind: ApiErrorKind.forbidden);
       final repo = TeamsRepository(fake);

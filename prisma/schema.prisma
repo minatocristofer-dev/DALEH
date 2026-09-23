@@ -181,13 +181,19 @@ enum PapelTime {
 }
 
 model TeamMember {
-  id        String    @id @default(uuid())
-  teamId    String    @map("team_id")
-  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  userId    String    @map("user_id")
-  user      User      @relation(fields: [userId], references: [id])
-  papel     PapelTime @default(JOGADOR)
-  status    String    @default("active") // active | invited | removed
+  id           String    @id @default(uuid())
+  teamId       String    @map("team_id")
+  team         Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId       String    @map("user_id")
+  user         User      @relation(fields: [userId], references: [id])
+  papel        PapelTime @default(JOGADOR)
+  status       String    @default("active") // active | invited | removed
+  // Número da camisa que o jogador veste NESTE time — escolhido pelo
+  // administrador/capitão, não pelo próprio jogador. Não tem constraint de
+  // unicidade no banco de propósito: a checagem de "número já usado" só
+  // deve valer entre membros ativos (ver TeamsService.atualizarMembro), e
+  // um membro removido não pode travar esse número pra sempre.
+  numeroCamisa Int?      @map("numero_camisa")
 
   @@unique([teamId, userId])
   @@map("team_members")

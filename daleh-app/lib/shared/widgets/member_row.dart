@@ -6,11 +6,12 @@ import 'crest_avatar.dart';
 import 'status_chip.dart';
 
 /// Layout definido pelo mockup "TIME — ELENCO" (QA de 2026-09-21): foto,
-/// nome, posição, e jogos/gols/MVPs em colunas. Número da camisa do mockup
-/// não entra — não existe esse campo no backend (mesma lacuna documentada no
-/// Player Card). O papel de gestão (capitão/vice/dono) continua aparecendo,
-/// só que discreto (badge ao lado do nome, e só quando não é "jogador"
-/// comum) — informação real que já existia, não dá pra simplesmente sumir.
+/// nome, posição, e jogos/gols/MVPs em colunas. O papel de gestão
+/// (capitão/vice/dono) continua aparecendo, só que discreto (badge ao lado
+/// do nome, e só quando não é "jogador" comum) — informação real que já
+/// existia, não dá pra simplesmente sumir. Número da camisa (quando o
+/// administrador já definiu) aparece em destaque do lado do nome, do mesmo
+/// jeito que numa camisa de verdade.
 class MemberRow extends StatelessWidget {
   final TeamMember membro;
   final bool ehDono;
@@ -18,6 +19,7 @@ class MemberRow extends StatelessWidget {
   final bool souEuMesmo;
   final void Function(String novoPapel)? onAlterarPapel;
   final VoidCallback? onRemover;
+  final VoidCallback? onEditarNumero;
 
   const MemberRow({
     super.key,
@@ -27,6 +29,7 @@ class MemberRow extends StatelessWidget {
     required this.souEuMesmo,
     this.onAlterarPapel,
     this.onRemover,
+    this.onEditarNumero,
   });
 
   @override
@@ -48,6 +51,17 @@ class MemberRow extends StatelessWidget {
               child: Row(
                 children: [
                   CrestAvatar(url: membro.avatarUrl, nome: membro.fullName, tamanho: 44),
+                  if (membro.numeroCamisa != null) ...[
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 26,
+                      child: Text(
+                        '${membro.numeroCamisa}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 18),
+                      ),
+                    ),
+                  ],
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 3,
@@ -101,11 +115,18 @@ class MemberRow extends StatelessWidget {
               onSelected: (valor) {
                 if (valor == 'remover') {
                   onRemover?.call();
+                } else if (valor == 'numero') {
+                  onEditarNumero?.call();
                 } else {
                   onAlterarPapel?.call(valor);
                 }
               },
               itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'numero',
+                  child: Text(membro.numeroCamisa == null ? 'Definir número da camisa' : 'Trocar número da camisa'),
+                ),
+                const PopupMenuDivider(),
                 if (membro.papel != 'JOGADOR') const PopupMenuItem(value: 'JOGADOR', child: Text('Definir como Jogador')),
                 if (membro.papel != 'VICE_CAPITAO')
                   const PopupMenuItem(value: 'VICE_CAPITAO', child: Text('Definir como Vice-Capitão')),

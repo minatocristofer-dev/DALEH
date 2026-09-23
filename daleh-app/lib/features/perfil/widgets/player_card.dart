@@ -11,12 +11,14 @@ import '../models/meu_perfil.dart';
 /// informação com ícone, time em destaque com o escudo à direita, e
 /// estatísticas em 4 colunas.
 ///
-/// O mockup também tem número da camisa ("#10"), data de entrada no time
-/// ("DESDE MAR 2024") e uma fileira de badges/conquistas ("HISTÓRICO
-/// DALEH") — nenhum desses três tem campo correspondente no backend (não
-/// existe número de camisa, TeamMember não guarda data de entrada, e não
-/// existe nenhum sistema de conquistas). Por decisão do projeto de nunca
-/// inventar dado, os três ficam de fora daqui.
+/// O mockup também tem data de entrada no time ("DESDE MAR 2024") e uma
+/// fileira de badges/conquistas ("HISTÓRICO DALEH") — nenhum dos dois tem
+/// campo correspondente no backend (TeamMember não guarda data de entrada,
+/// e não existe nenhum sistema de conquistas). Por decisão do projeto de
+/// nunca inventar dado, os dois ficam de fora daqui. O número da camisa
+/// ("#10") já existe (definido pelo administrador do time — ver
+/// TeamsService.atualizarMembro) e aparece quando o jogador tem um time
+/// atual com número definido.
 class PlayerCard extends StatelessWidget {
   final MeuPerfil perfil;
   const PlayerCard({super.key, required this.perfil});
@@ -45,53 +47,72 @@ class PlayerCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 6,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'DALEH',
-                            style: TextStyle(
-                              color: DalehColors.turf,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 19,
-                              fontStyle: FontStyle.italic,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          Text(
-                            primeiraLinhaNome.isNotEmpty ? primeiraLinhaNome : ultimaLinhaNome,
-                            style: const TextStyle(
-                              color: DalehColors.text,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 22,
-                              height: 1.05,
-                            ),
-                          ),
-                          if (primeiraLinhaNome.isNotEmpty)
-                            Text(
-                              ultimaLinhaNome,
-                              style: const TextStyle(
-                                color: DalehColors.turf,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 22,
-                                height: 1.05,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 6,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'DALEH',
+                                style: TextStyle(
+                                  color: DalehColors.turf,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 19,
+                                  fontStyle: FontStyle.italic,
+                                  letterSpacing: 1,
+                                ),
                               ),
-                            ),
-                        ],
+                              const SizedBox(height: 22),
+                              Text(
+                                primeiraLinhaNome.isNotEmpty ? primeiraLinhaNome : ultimaLinhaNome,
+                                style: const TextStyle(
+                                  color: DalehColors.text,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 22,
+                                  height: 1.05,
+                                ),
+                              ),
+                              if (primeiraLinhaNome.isNotEmpty)
+                                Text(
+                                  ultimaLinhaNome,
+                                  style: const TextStyle(
+                                    color: DalehColors.turf,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 22,
+                                    height: 1.05,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(flex: 5, child: _fotoJogador()),
+                      ],
+                    ),
+                  ),
+                  if (time?.numeroCamisa != null)
+                    Positioned(
+                      top: -4,
+                      right: 0,
+                      child: Text(
+                        '#${time!.numeroCamisa}',
+                        style: const TextStyle(
+                          color: DalehColors.text,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 20,
+                          height: 1,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(flex: 5, child: _fotoJogador()),
-                  ],
-                ),
+                ],
               ),
               const SizedBox(height: 20),
               if (modalidadePrincipal != null)

@@ -65,6 +65,23 @@ class TeamsActions {
     ref.invalidate(teamDetailProvider(teamId));
   }
 
+  /// Define (ou limpa, se `numero` for null) o número da camisa de um
+  /// jogador do elenco — quem escolhe é o administrador/capitão, nunca o
+  /// próprio jogador. Reenvia o papel atual dele porque o backend exige
+  /// esse campo em toda chamada deste endpoint.
+  Future<String?> definirNumeroCamisa(String teamId, String alvoUserId, String papelAtual, int? numero) async {
+    try {
+      await comSessao(
+        ref,
+        (token) => _repo.atualizarPapel(teamId, alvoUserId, token, papel: papelAtual, numeroCamisa: numero),
+      );
+      ref.invalidate(teamDetailProvider(teamId));
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
   Future<void> removerMembro(String teamId, String alvoUserId) async {
     await comSessao(ref, (token) => _repo.removerMembro(teamId, alvoUserId, token));
     ref.invalidate(teamDetailProvider(teamId));

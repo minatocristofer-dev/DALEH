@@ -37,7 +37,7 @@ MeuPerfil _perfilCompleto() {
       'convocacoes': 8,
     },
     'timesAtuais': [
-      {'id': 'time-1', 'name': 'DALEH FC', 'crestUrl': null, 'papel': 'CAPITAO'},
+      {'id': 'time-1', 'name': 'DALEH FC', 'crestUrl': null, 'papel': 'CAPITAO', 'numeroCamisa': 10},
     ],
     'timesAnteriores': [],
   });
@@ -81,6 +81,7 @@ void main() {
     expect(find.text('SANTA MARIA / RS · 33 ANOS'), findsOneWidget);
     expect(find.text('PÉ DIREITO'), findsOneWidget);
     expect(find.text('DALEH FC'), findsOneWidget);
+    expect(find.text('#10'), findsOneWidget); // número da camisa, definido pelo administrador do time
     expect(find.text('12'), findsOneWidget); // jogos
     expect(find.text('5'), findsOneWidget); // gols
     expect(find.text('SOBRE'), findsOneWidget);
@@ -96,6 +97,7 @@ void main() {
     expect(find.textContaining('ANOS'), findsNothing, reason: 'sem birthDate, não inventa idade');
     expect(find.textContaining('PÉ '), findsNothing, reason: 'sem dominantFoot, não mostra a linha');
     expect(find.text('SOBRE'), findsNothing, reason: 'sem bio, não mostra a seção');
+    expect(find.textContaining('#'), findsNothing, reason: 'sem time, não tem número de camisa pra mostrar');
     expect(tester.takeException(), isNull);
   });
 

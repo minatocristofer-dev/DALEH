@@ -34,6 +34,9 @@ class TeamMember {
   // schema). Null quando o jogador ainda não cadastrou nenhuma modalidade;
   // nunca inventado.
   final String? posicaoPrincipal;
+  // Escolhido pelo administrador/capitão do time, nunca pelo próprio
+  // jogador — null até alguém definir (nunca inventado).
+  final int? numeroCamisa;
   final EstatisticasNoTime estatisticas;
 
   TeamMember({
@@ -45,6 +48,7 @@ class TeamMember {
     required this.fullName,
     this.avatarUrl,
     this.posicaoPrincipal,
+    this.numeroCamisa,
     required this.estatisticas,
   });
 
@@ -59,6 +63,7 @@ class TeamMember {
       fullName: user?['fullName'] as String? ?? '',
       avatarUrl: user?['avatarUrl'] as String?,
       posicaoPrincipal: json['posicaoPrincipal'] as String?,
+      numeroCamisa: json['numeroCamisa'] as int?,
       estatisticas: EstatisticasNoTime.fromJson(json['estatisticas'] as Map<String, dynamic>?),
     );
   }
