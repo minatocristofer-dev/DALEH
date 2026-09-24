@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../shared/tempo_no_time.dart';
 import '../../../shared/widgets/crest_avatar.dart';
 import '../../../theme/daleh_theme.dart';
+import '../conquistas.dart';
 import '../foto_perfil_layout.dart';
 import '../models/meu_perfil.dart';
 
@@ -12,14 +13,11 @@ import '../models/meu_perfil.dart';
 /// informação com ícone, time em destaque com o escudo à direita, e
 /// estatísticas em 4 colunas.
 ///
-/// O mockup também tem data de entrada no time ("DESDE MAR 2024") e uma
-/// fileira de badges/conquistas ("HISTÓRICO DALEH") — nenhum dos dois tem
-/// campo correspondente no backend (TeamMember não guarda data de entrada,
-/// e não existe nenhum sistema de conquistas). Por decisão do projeto de
-/// nunca inventar dado, os dois ficam de fora daqui. O número da camisa
-/// ("#10") já existe (definido pelo administrador do time — ver
-/// TeamsService.atualizarMembro) e aparece quando o jogador tem um time
-/// atual com número definido.
+/// O mockup original também tinha "DESDE MAR 2024" (tempo no time atual —
+/// ver `_linhaTime`, campo `TimeResumo.desde`) e a fileira de badges
+/// "HISTÓRICO DALEH" (ver `conquistas.dart`) — os dois já existem agora.
+/// O número da camisa ("#10") também já existe, definido pelo
+/// administrador do time (ver TeamsService.atualizarMembro).
 class PlayerCard extends StatelessWidget {
   final MeuPerfil perfil;
   const PlayerCard({super.key, required this.perfil});
@@ -143,9 +141,42 @@ class PlayerCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(perfil.bio!, style: const TextStyle(color: DalehColors.textSecondary, fontSize: 13, height: 1.4)),
               ],
+              const SizedBox(height: 16),
+              const Divider(color: DalehColors.line, height: 1),
+              const SizedBox(height: 14),
+              const Text(
+                'HISTÓRICO DALEH',
+                style: TextStyle(color: DalehColors.text, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+              ),
+              const SizedBox(height: 10),
+              _linhaConquistas(calcularConquistas(e)),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _linhaConquistas(List<Conquista> conquistas) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: conquistas.map((c) => _badgeConquista(c)).toList(),
+    );
+  }
+
+  Widget _badgeConquista(Conquista c) {
+    final cor = c.desbloqueada ? DalehColors.turf : DalehColors.muted;
+    return Tooltip(
+      message: '${c.nome}${c.desbloqueada ? '' : ' (bloqueada)'} — ${c.descricao}',
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: c.desbloqueada ? DalehColors.turf.withValues(alpha: 0.15) : Colors.transparent,
+          border: Border.all(color: cor.withValues(alpha: c.desbloqueada ? 0.7 : 0.35), width: 1.3),
+        ),
+        child: Icon(c.icone, size: 18, color: cor.withValues(alpha: c.desbloqueada ? 1 : 0.6)),
       ),
     );
   }

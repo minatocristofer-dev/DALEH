@@ -12,8 +12,8 @@ import 'package:daleh_app/theme/daleh_theme.dart';
 Widget _comTema(Widget filho) =>
     MaterialApp(theme: buildDalehTheme(), home: Scaffold(body: SingleChildScrollView(child: filho)));
 
-MeuPerfil _perfilCompleto() {
-  return MeuPerfil.fromJson({
+Map<String, dynamic> _jsonBase() {
+  return {
     'id': 'user-1',
     'fullName': 'Cristofer Teste',
     'email': 'cristofer@teste.com',
@@ -40,8 +40,10 @@ MeuPerfil _perfilCompleto() {
       {'id': 'time-1', 'name': 'DALEH FC', 'crestUrl': null, 'papel': 'CAPITAO', 'numeroCamisa': 10},
     ],
     'timesAnteriores': [],
-  });
+  };
 }
+
+MeuPerfil _perfilCompleto() => MeuPerfil.fromJson(_jsonBase());
 
 MeuPerfil _perfilVazio() {
   return MeuPerfil.fromJson({
@@ -86,6 +88,34 @@ void main() {
     expect(find.text('5'), findsOneWidget); // gols
     expect(find.text('SOBRE'), findsOneWidget);
     expect(find.text('Gosto de jogo intenso, tabelas rápidas e decidir no último passe.'), findsOneWidget);
+
+    // Conquistas (fileira "HISTÓRICO DALEH") — 12 jogos/5 gols/3
+    // assistências/2 mvp não batem nenhum dos 5 números, então as 5
+    // aparecem bloqueadas (mas a seção em si sempre aparece).
+    expect(find.text('HISTÓRICO DALEH'), findsOneWidget);
+    expect(find.byTooltip('Artilheiro (bloqueada) — 10 gols marcados'), findsOneWidget);
+  });
+
+  testWidgets('conquistas desbloqueiam de verdade quando as estatísticas reais batem o número', (tester) async {
+    final perfil = MeuPerfil.fromJson({
+      ..._jsonBase(),
+      'estatisticas': {
+        'jogosDisputados': 25,
+        'gols': 12,
+        'assistencias': 11,
+        'cartoesAmarelos': 0,
+        'cartoesVermelhos': 0,
+        'mvp': 6,
+        'convocacoes': 0,
+      },
+    });
+    await tester.pumpWidget(_comTema(PlayerCard(perfil: perfil)));
+
+    expect(find.byTooltip('Artilheiro — 10 gols marcados'), findsOneWidget);
+    expect(find.byTooltip('Garçom — 10 assistências'), findsOneWidget);
+    expect(find.byTooltip('Estrela da Partida — 5 vezes eleito MVP'), findsOneWidget);
+    expect(find.byTooltip('Presença de Ferro — 20 jogos disputados'), findsOneWidget);
+    expect(find.byTooltip('Camisa 10 — 15 participações em gol (gols + assistências)'), findsOneWidget);
   });
 
   testWidgets('jogador novo (sem time, sem modalidade, tudo zerado) renderiza sem crashar e sem inventar dado', (tester) async {
@@ -94,6 +124,10 @@ void main() {
     expect(find.text('NOVATO'), findsOneWidget);
     expect(find.text('Sem time no momento'), findsOneWidget);
     expect(find.text('0'), findsWidgets); // estatísticas zeradas, reais
+    // Diferente de bio/idade/pé (só aparecem com dado real), a seção de
+    // conquistas SEMPRE aparece — só que com tudo bloqueado, já que é zero.
+    expect(find.text('HISTÓRICO DALEH'), findsOneWidget);
+    expect(find.byTooltip('Artilheiro (bloqueada) — 10 gols marcados'), findsOneWidget);
     expect(find.textContaining('ANOS'), findsNothing, reason: 'sem birthDate, não inventa idade');
     expect(find.textContaining('PÉ '), findsNothing, reason: 'sem dominantFoot, não mostra a linha');
     expect(find.text('SOBRE'), findsNothing, reason: 'sem bio, não mostra a seção');
