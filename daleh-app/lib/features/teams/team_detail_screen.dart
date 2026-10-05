@@ -9,6 +9,7 @@ import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/status_chip.dart';
 import '../../theme/daleh_theme.dart';
 import 'call_ups_tab.dart';
+import '../financeiro/financeiro_tab.dart';
 import 'editar_escudo_screen.dart';
 import 'models/team_member.dart';
 import 'teams_providers.dart';
@@ -22,15 +23,17 @@ class TeamDetailScreen extends ConsumerWidget {
     final detailAsync = ref.watch(teamDetailProvider(teamId));
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: Text(detailAsync.maybeWhen(data: (d) => d.name, orElse: () => 'Time')),
           bottom: const TabBar(
+            isScrollable: true,
             tabs: [
               Tab(text: 'VISÃO GERAL'),
               Tab(text: 'ELENCO'),
               Tab(text: 'CONVOCAÇÕES'),
+              Tab(text: 'FINANCEIRO'),
             ],
           ),
         ),
@@ -47,6 +50,7 @@ class TeamDetailScreen extends ConsumerWidget {
                 _VisaoGeralTab(detail: detail, souDono: souDono, possoGerenciar: possoGerenciar),
                 _ElencoTab(teamId: teamId, detail: detail, meuUserId: meuUserId, possoGerenciar: possoGerenciar),
                 CallUpsTab(teamId: teamId, possoGerenciar: possoGerenciar),
+                FinanceiroTab(teamId: teamId),
               ],
             );
           },
