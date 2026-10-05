@@ -35,6 +35,12 @@ class Match {
   // Se o usuário logado pode alimentar a súmula desta partida (capitão/dono
   // de um dos times, ou criador em partida avulsa) — calculado no backend.
   final bool souGestorDaSumula;
+  // Valor total da quadra informado pelo gestor (nulo = não informado) e o
+  // resumo da divisão calculado pelo backend (50/50 entre times, depois por jogador).
+  final double? valorQuadra;
+  final ResumoPagamento? resumoPagamento;
+  final bool? venueCovered;
+  final String? venueAddress;
 
   Match({
     required this.id,
@@ -59,6 +65,10 @@ class Match {
     this.homeScore,
     this.awayScore,
     this.souGestorDaSumula = false,
+    this.valorQuadra,
+    this.resumoPagamento,
+    this.venueCovered,
+    this.venueAddress,
   });
 
   factory Match.fromJson(Map<String, dynamic> json) {
@@ -92,6 +102,12 @@ class Match {
       homeScore: json['homeScore'] as int?,
       awayScore: json['awayScore'] as int?,
       souGestorDaSumula: json['souGestorDaSumula'] as bool? ?? false,
+      valorQuadra: (json['valorQuadra'] as num?)?.toDouble(),
+      venueCovered: venue?['covered'] as bool?,
+      venueAddress: venue?['address'] as String?,
+      resumoPagamento: json['resumoPagamento'] == null
+          ? null
+          : ResumoPagamento.fromJson(json['resumoPagamento'] as Map<String, dynamic>),
     );
   }
 
@@ -101,5 +117,56 @@ class Match {
   MatchEvent? get mvpEvento {
     final lista = events?.where((e) => e.eventType == 'mvp');
     return (lista == null || lista.isEmpty) ? null : lista.first;
+  }
+}
+
+class ResumoPagamento {
+  final double? totalEsperado;
+  final double? totalRecebido;
+  final int confirmados;
+  final int pagos;
+  final TotalTimePagamento? home;
+  final TotalTimePagamento? away;
+  final double? valorPorJogadorAvulsa;
+
+  const ResumoPagamento({
+    required this.totalEsperado,
+    required this.totalRecebido,
+    required this.confirmados,
+    required this.pagos,
+    required this.home,
+    required this.away,
+    required this.valorPorJogadorAvulsa,
+  });
+
+  factory ResumoPagamento.fromJson(Map<String, dynamic> json) {
+    final porTime = json['porTime'] as Map<String, dynamic>?;
+    final home = porTime?['home'] as Map<String, dynamic>?;
+    final away = porTime?['away'] as Map<String, dynamic>?;
+    return ResumoPagamento(
+      totalEsperado: (json['totalEsperado'] as num?)?.toDouble(),
+      totalRecebido: (json['totalRecebido'] as num?)?.toDouble(),
+      confirmados: json['confirmados'] as int? ?? 0,
+      pagos: json['pagos'] as int? ?? 0,
+      home: home == null ? null : TotalTimePagamento.fromJson(home),
+      away: away == null ? null : TotalTimePagamento.fromJson(away),
+      valorPorJogadorAvulsa: (json['valorPorJogadorAvulsa'] as num?)?.toDouble(),
+    );
+  }
+}
+
+class TotalTimePagamento {
+  final double valorTime;
+  final double? valorPorJogador;
+  final int jogadores;
+
+  const TotalTimePagamento({required this.valorTime, required this.valorPorJogador, required this.jogadores});
+
+  factory TotalTimePagamento.fromJson(Map<String, dynamic> json) {
+    return TotalTimePagamento(
+      valorTime: (json['valorTime'] as num).toDouble(),
+      valorPorJogador: (json['valorPorJogador'] as num?)?.toDouble(),
+      jogadores: json['jogadores'] as int? ?? 0,
+    );
   }
 }

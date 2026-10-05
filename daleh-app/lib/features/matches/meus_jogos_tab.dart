@@ -6,7 +6,7 @@ import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/match_card.dart';
 import '../../theme/daleh_theme.dart';
 import 'criar_jogo_screen.dart';
-import 'jogo_detail_screen.dart';
+import 'minha_reserva_screen.dart';
 import 'matches_providers.dart';
 
 class MeusJogosTab extends ConsumerWidget {
@@ -52,7 +52,7 @@ class MeusJogosTab extends ConsumerWidget {
                 child: MatchCard(
                   partida: partidas[i],
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => JogoDetailScreen(matchId: partidas[i].id)),
+                    MaterialPageRoute(builder: (_) => MinhaReservaScreen(matchId: partidas[i].id)),
                   ),
                 ),
               ),

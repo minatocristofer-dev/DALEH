@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/api_client.dart';
 import '../../core/session_guard.dart';
 import '../auth/auth_controller.dart';
 import 'matches_repository.dart';
@@ -43,6 +44,28 @@ class MatchesActions {
     );
     ref.invalidate(minhasPartidasProvider);
     return partida;
+  }
+
+  /// Retorna a mensagem de erro da API ou null se deu certo.
+  Future<String?> definirValorQuadra(String matchId, {required double? valor}) async {
+    try {
+      await comSessao(ref, (token) => _repo.definirValorQuadra(matchId, token, valor: valor));
+      ref.invalidate(partidaDetalheProvider(matchId));
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
+  /// Retorna a mensagem de erro da API ou null se deu certo.
+  Future<String?> marcarPagamento(String matchId, String alvoUserId, {required bool pago}) async {
+    try {
+      await comSessao(ref, (token) => _repo.marcarPagamento(matchId, alvoUserId, token, pago: pago));
+      ref.invalidate(partidaDetalheProvider(matchId));
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
   }
 
   Future<void> confirmarPresenca(String matchId) async {

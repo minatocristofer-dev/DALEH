@@ -9,6 +9,7 @@ import '../../shared/widgets/status_chip.dart';
 import '../../theme/daleh_theme.dart';
 import '../perfil/perfil_publico_screen.dart';
 import '../teams/teams_providers.dart';
+import 'controle_pagamentos_tab.dart';
 import 'matches_providers.dart';
 import 'models/match.dart';
 import 'models/match_attendance.dart';
@@ -80,7 +81,7 @@ class _JogoDetailBodyState extends ConsumerState<_JogoDetailBody> {
     final souCriador = meuUserId != null && partida.souCriador(meuUserId);
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         children: [
           Padding(
@@ -170,12 +171,13 @@ class _JogoDetailBodyState extends ConsumerState<_JogoDetailBody> {
               ),
             ),
           ),
-          const TabBar(tabs: [Tab(text: 'PARTICIPANTES'), Tab(text: 'SÚMULA')]),
+          const TabBar(tabs: [Tab(text: 'PARTICIPANTES'), Tab(text: 'SÚMULA'), Tab(text: 'PAGAMENTOS')]),
           Expanded(
             child: TabBarView(
               children: [
                 _ParticipantesTab(partida: partida),
                 _SumulaTab(partida: partida, souCriador: souCriador),
+                ControlePagamentosTab(partida: partida),
               ],
             ),
           ),

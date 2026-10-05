@@ -14,6 +14,10 @@ class MatchAttendance {
   // histórica. Fica null quando não determinável — nunca inventado.
   final String? teamId;
   final String? posicaoPrincipal;
+  // Controle manual de pagamento da quadra: nulo = pendente.
+  final DateTime? pagoEm;
+  // Quanto esse jogador deve (nulo = sem valor da quadra ou sem time definido).
+  final double? valorDevido;
 
   MatchAttendance({
     required this.id,
@@ -25,6 +29,8 @@ class MatchAttendance {
     this.userAvatarUrl,
     this.teamId,
     this.posicaoPrincipal,
+    this.pagoEm,
+    this.valorDevido,
   });
 
   factory MatchAttendance.fromJson(Map<String, dynamic> json) {
@@ -39,9 +45,12 @@ class MatchAttendance {
       userAvatarUrl: user?['avatarUrl'] as String?,
       teamId: json['teamId'] as String?,
       posicaoPrincipal: json['posicaoPrincipal'] as String?,
+      pagoEm: json['pagoEm'] == null ? null : DateTime.parse(json['pagoEm'] as String),
+      valorDevido: (json['valorDevido'] as num?)?.toDouble(),
     );
   }
 
+  bool get pago => pagoEm != null;
   bool get confirmado => status == 'confirmed';
   bool get naEspera => status == 'waitlist';
 }

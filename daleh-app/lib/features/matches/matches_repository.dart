@@ -52,6 +52,18 @@ class MatchesRepository {
     return _api.deleteAutenticado('/matches/$matchId/attendance', token: token);
   }
 
+  Future<void> definirValorQuadra(String matchId, String token, {required double? valor}) {
+    return _api.patchAutenticado('/matches/$matchId/valor-quadra', token: token, corpo: {'valor': valor});
+  }
+
+  Future<void> marcarPagamento(String matchId, String alvoUserId, String token, {required bool pago}) {
+    return _api.patchAutenticado(
+      '/matches/$matchId/attendance/$alvoUserId/pagamento',
+      token: token,
+      corpo: {'pago': pago},
+    );
+  }
+
   Future<MatchEvent> registrarEvento(
     String matchId,
     String token, {
