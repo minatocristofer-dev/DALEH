@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 import '../../core/session_guard.dart';
+import '../auth/auth_controller.dart';
 import 'financeiro_repository.dart';
 import 'models/financeiro.dart';
 
