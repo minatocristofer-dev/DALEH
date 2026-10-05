@@ -6,6 +6,7 @@ import { TeamsModule } from './modules/teams/teams.module';
 import { VenuesModule } from './modules/venues/venues.module';
 import { MatchesModule } from './modules/matches/matches.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { FinanceModule } from './modules/finance/finance.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -17,6 +18,7 @@ import { HealthController } from './health.controller';
     VenuesModule,
     MatchesModule,
     NotificationsModule,
+    FinanceModule,
   ],
   controllers: [HealthController],
 })

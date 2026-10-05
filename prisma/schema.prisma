@@ -54,6 +54,8 @@ model User {
   payments           Payment[]
   notifications      Notification[]
   deviceTokens       DeviceToken[]
+  cobrancasCriadas   TeamCharge[]       @relation("ChargeCreator")
+  cobrancaItens      TeamChargeItem[]
 
   @@map("users")
 }
@@ -159,9 +161,14 @@ model Team {
   ownerId   String   @map("owner_id")
   owner     User     @relation("TeamOwner", fields: [ownerId], references: [id])
   createdAt DateTime @default(now()) @map("created_at")
+  // Chave PIX do time, cadastrada pelo capitão. O app NUNCA processa o
+  // pagamento: só exibe a chave pra o jogador pagar pelo app do banco dele.
+  pixKey    String?  @map("pix_key")
+  pixNome   String?  @map("pix_nome")
 
   members         TeamMember[]
   finances        TeamFinance[]
+  charges         TeamCharge[]
   challenges      TeamChallenge[]      @relation("ChallengeOrganizer")
   challengeReqs   ChallengeRequest[]
   callUps         CallUp[]
@@ -419,6 +426,38 @@ model MatchEvent {
 // ---------------------------------------------------------------------------
 // CAMPEONATOS (fase futura — schema já reservado)
 // ---------------------------------------------------------------------------
+
+// Cobrança avulsa de um time (ex: "Pelada de sábado — R$ 20"). Criada pelo
+// capitão; gera um TeamChargeItem por membro ativo naquele momento.
+model TeamCharge {
+  id           String   @id @default(uuid())
+  teamId       String   @map("team_id")
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  titulo       String
+  valor        Float
+  criadoPorId  String   @map("criado_por")
+  criadoPor    User     @relation("ChargeCreator", fields: [criadoPorId], references: [id])
+  criadoEm     DateTime @default(now()) @map("created_at")
+
+  itens        TeamChargeItem[]
+
+  @@map("team_charges")
+}
+
+// Quem deve a cobrança e se já pagou. pagoEm nulo = ainda não pagou.
+// marcadoPorId registra quem (capitão/tesoureiro) confirmou o pagamento.
+model TeamChargeItem {
+  id           String    @id @default(uuid())
+  chargeId     String    @map("charge_id")
+  charge       TeamCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  userId       String    @map("user_id")
+  user         User      @relation(fields: [userId], references: [id])
+  pagoEm       DateTime? @map("paid_at")
+  marcadoPorId String?   @map("marked_by")
+
+  @@unique([chargeId, userId])
+  @@map("team_charge_items")
+}
 
 model Championship {
   id         String   @id @default(uuid())
