@@ -65,6 +65,24 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # Só usado pra gerar o ícone do launcher Android a partir de
+  # assets/icon/app_icon.png (`dart run flutter_launcher_icons`) — não é
+  # código que o app leva pro celular, fica só como ferramenta de build.
+  flutter_launcher_icons: ^0.14.3
+
+# Config do flutter_launcher_icons — ícone definitivo do app (QA de
+# 2026-09-24). Só ícone "legacy" (sem adaptive_icon_foreground/background):
+# a arte já vem com fundo e cantos arredondados embutidos numa imagem só
+# (sem camada separada de primeiro plano transparente), então gerar um
+# adaptive icon "de verdade" a partir dela criaria uma moldura dupla (o
+# quadrado arredondado da arte dentro da máscara adaptativa do Android).
+# Sem esse XML, o launcher aplica a própria máscara/sombra automaticamente
+# — comportamento padrão do Android pra ícone legacy, não é um problema.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
