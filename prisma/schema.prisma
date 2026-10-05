@@ -380,6 +380,9 @@ model Match {
   status          String   @default("scheduled") // scheduled | in_progress | finished | cancelled
   maxPlayers      Int?     @map("max_players")
   visibility      String   @default("public") // public | private
+  // Valor total pago à quadra por esta partida, informado pelo gestor. Nulo =
+  // não informado. A divisão por time/jogador é calculada na leitura, nunca salva.
+  valorQuadra     Float?   @map("valor_quadra")
 
   attendance      MatchAttendance[]
   events          MatchEvent[]
@@ -397,6 +400,10 @@ model MatchAttendance {
   user       User     @relation(fields: [userId], references: [id])
   status     String   @default("confirmed") // confirmed | waitlist | declined
   checkedInAt DateTime? @map("checked_in_at")
+  // Controle manual de pagamento da quadra/partida: só quem tem gestão da
+  // partida marca. Nulo = pendente. Não é cobrança nem Pix — só checklist.
+  pagoEm     DateTime? @map("paid_at")
+  marcadoPorId String? @map("marked_by")
   createdAt  DateTime @default(now()) @map("created_at") // garante ordem de chegada na fila de espera
 
   @@unique([matchId, userId])

@@ -61,6 +61,7 @@ describe('MatchesService', () => {
         homeScore: null,
         awayScore: null,
         souGestorDaSumula: true,
+        resumoPagamento: expect.any(Object),
       });
     });
 
@@ -73,6 +74,7 @@ describe('MatchesService', () => {
         homeScore: null,
         awayScore: null,
         souGestorDaSumula: false,
+        resumoPagamento: expect.any(Object),
       });
     });
 
@@ -444,9 +446,9 @@ describe('MatchesService', () => {
       const partida = await service.obterPartida('match-1');
 
       expect(partida.attendance).toEqual([
-        { userId: 'user-joao', status: 'confirmed', teamId: 'time-a', posicaoPrincipal: 'Atacante' },
-        { userId: 'user-marcos', status: 'confirmed', teamId: 'time-b', posicaoPrincipal: null },
-        { userId: 'user-sem-time', status: 'confirmed', teamId: null, posicaoPrincipal: null },
+        { userId: 'user-joao', status: 'confirmed', teamId: 'time-a', posicaoPrincipal: 'Atacante', valorDevido: null },
+        { userId: 'user-marcos', status: 'confirmed', teamId: 'time-b', posicaoPrincipal: null, valorDevido: null },
+        { userId: 'user-sem-time', status: 'confirmed', teamId: null, posicaoPrincipal: null, valorDevido: null },
       ]);
       expect(prisma.playerModalidade.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ modalidadeId: 'modalidade-society' }) }),
@@ -474,7 +476,7 @@ describe('MatchesService', () => {
 
       const partida = await service.obterPartida('match-1');
 
-      expect(partida.attendance).toEqual(partidaComTimes.attendance);
+      expect(partida.attendance).toEqual(partidaComTimes.attendance.map((a) => ({ ...a, valorDevido: null })));
       expect(prisma.playerModalidade.findMany).not.toHaveBeenCalled();
     });
   });

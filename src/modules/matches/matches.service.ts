@@ -7,6 +7,8 @@ import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateMatchStatusDto } from './dto/update-match-status.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { RegisterGoalDto } from './dto/register-goal.dto';
+import { MarcarPagamentoDto } from './dto/marcar-pagamento.dto';
+import { calcularDivisaoPagamento } from './pagamento-divisao';
 import { ElectMvpDto } from './dto/elect-mvp.dto';
 
 const STATUS_QUE_BLOQUEIA_NOVOS_EVENTOS = ['finished', 'cancelled'];
@@ -86,7 +88,37 @@ export class MatchesService {
       ? await this.comEscalacao(partida.homeTeamId!, partida.awayTeamId!, partida.modalidadeId, partida.attendance ?? [])
       : partida.attendance;
 
-    return { ...partida, attendance, homeScore, awayScore, souGestorDaSumula };
+    const lista = attendance ?? [];
+    const confirmados = lista.filter((a) => a.status === 'confirmed');
+    const divisao = calcularDivisaoPagamento(
+      partida.valorQuadra,
+      confirmados.map((a) => ({ userId: a.userId, teamId: (a as { teamId?: string | null }).teamId ?? null })),
+      partida.homeTeamId,
+      partida.awayTeamId,
+    );
+    const attendanceComValor = attendance?.map((a) => ({
+      ...a,
+      valorDevido: divisao.valorDevido.get(a.userId) ?? null,
+    }));
+    const pagosConfirmados = confirmados.filter((a) => a.pagoEm);
+    const totalRecebido = pagosConfirmados.reduce((acc, a) => acc + (divisao.valorDevido.get(a.userId) ?? 0), 0);
+
+    return {
+      ...partida,
+      attendance: attendanceComValor,
+      homeScore,
+      awayScore,
+      souGestorDaSumula,
+      resumoPagamento: {
+        valorQuadra: partida.valorQuadra,
+        totalEsperado: partida.valorQuadra,
+        totalRecebido: partida.valorQuadra == null ? null : Math.round(totalRecebido * 100) / 100,
+        confirmados: confirmados.length,
+        pagos: pagosConfirmados.length,
+        porTime: divisao.porTime,
+        valorPorJogadorAvulsa: divisao.valorPorJogadorAvulsa,
+      },
+    };
   }
 
   // Escalação: pra cada participante, resolve de qual time (casa/fora) ele é
@@ -476,6 +508,58 @@ export class MatchesService {
         ? this.calcularPlacar(partida.homeTeamId!, partida.awayTeamId!, events)
         : { homeScore: null, awayScore: null };
       return { ...partida, homeScore, awayScore };
+    });
+  }
+
+  async definirValorQuadra(matchId: string, userId: string, valor: number | null) {
+    const match = await this.prisma.match.findUnique({ where: { id: matchId } });
+    if (!match) throw new NotFoundException('Partida não encontrada.');
+    if (!(await this.ehGestorDaPartida(match, userId))) {
+      throw new ForbiddenException('Só quem gerencia esta partida pode informar o valor da quadra.');
+    }
+    return this.prisma.match.update({
+      where: { id: matchId },
+      data: { valorQuadra: valor },
+      select: { id: true, valorQuadra: true },
+    });
+  }
+
+  private async ehGestorDaPartida(
+    match: { homeTeamId: string | null; awayTeamId: string | null; createdById: string },
+    userId: string,
+  ): Promise<boolean> {
+    if (match.homeTeamId && match.awayTeamId) {
+      return this.souGestorDeUmDosTimes(match.homeTeamId, match.awayTeamId, userId);
+    }
+    return match.createdById === userId;
+  }
+
+  // Controle manual de pagamento da quadra: só quem gerencia a partida
+  // (criador, ou capitão/dono de um dos times vinculados) marca. Não é
+  // cobrança nem Pix — só o status que o capitão confirma pra cada jogador.
+  async marcarPagamento(matchId: string, userId: string, alvoUserId: string, dto: MarcarPagamentoDto) {
+    const match = await this.prisma.match.findUnique({ where: { id: matchId } });
+    if (!match) throw new NotFoundException('Partida não encontrada.');
+
+    if (!(await this.ehGestorDaPartida(match, userId))) {
+      throw new ForbiddenException('Só quem gerencia esta partida pode marcar pagamentos.');
+    }
+
+    const presenca = await this.prisma.matchAttendance.findUnique({
+      where: { matchId_userId: { matchId, userId: alvoUserId } },
+    });
+    if (!presenca) throw new NotFoundException('Este jogador não está na partida.');
+    if (presenca.status !== 'confirmed') {
+      throw new BadRequestException('Só jogadores com presença confirmada entram no controle de pagamentos.');
+    }
+
+    return this.prisma.matchAttendance.update({
+      where: { id: presenca.id },
+      data: {
+        pagoEm: dto.pago ? new Date() : null,
+        marcadoPorId: dto.pago ? userId : null,
+      },
+      select: { userId: true, pagoEm: true },
     });
   }
 

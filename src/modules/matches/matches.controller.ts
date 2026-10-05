@@ -8,6 +8,8 @@ import { UpdateMatchStatusDto } from './dto/update-match-status.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { RegisterGoalDto } from './dto/register-goal.dto';
 import { ElectMvpDto } from './dto/elect-mvp.dto';
+import { MarcarPagamentoDto } from './dto/marcar-pagamento.dto';
+import { DefinirValorQuadraDto } from './dto/definir-valor-quadra.dto';
 
 // Explorar jogos públicos não exige login (mesmo padrão de Venues, Fase 0.5)
 // — só listar/detalhe são públicos; toda ação (criar, participar, etc.)
@@ -76,5 +78,22 @@ export class MatchesController {
   @UseGuards(AuthGuard('jwt'))
   elegerMvp(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado, @Body() dto: ElectMvpDto) {
     return this.matchesService.elegerMvp(id, user.id, dto);
+  }
+
+  @Patch(':id/attendance/:userId/pagamento')
+  @UseGuards(AuthGuard('jwt'))
+  marcarPagamento(
+    @Param('id') id: string,
+    @Param('userId') alvoUserId: string,
+    @CurrentUser() user: UsuarioAutenticado,
+    @Body() dto: MarcarPagamentoDto,
+  ) {
+    return this.matchesService.marcarPagamento(id, user.id, alvoUserId, dto);
+  }
+
+  @Patch(':id/valor-quadra')
+  @UseGuards(AuthGuard('jwt'))
+  definirValorQuadra(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado, @Body() dto: DefinirValorQuadraDto) {
+    return this.matchesService.definirValorQuadra(id, user.id, dto.valor);
   }
 }
