@@ -8,6 +8,15 @@ import { UpdateMemberDto } from './dto/update-member.dto';
 import { CreateCallUpDto } from './dto/create-call-up.dto';
 import { RespondCallUpDto } from './dto/respond-call-up.dto';
 
+type CallUpParaResposta = {
+  id: string;
+  teamId: string;
+  matchId: string | null;
+  venueNameSnapshot: string;
+  scheduledDate: Date;
+  scheduledTime: string;
+};
+
 @Injectable()
 export class TeamsService {
   constructor(
@@ -328,6 +337,14 @@ export class TeamsService {
       throw new ForbiddenException('Essa convocação não é sua.');
     }
 
+    const atualizada = await this.gravarRespostaConvocacao(callUp, userId, dto);
+    await this.notificarRespostaConvocacao(callUp, userId, dto.status);
+    return atualizada;
+  }
+
+  private async gravarRespostaConvocacao(callUp: CallUpParaResposta, userId: string, dto: RespondCallUpDto) {
+    const callUpId = callUp.id;
+
     // Confirmar a convocação também confirma a presença (MatchAttendance) na
     // partida vinculada — é essa tabela que a súmula (Fase 8) usa como
     // escalação real. Só se aplica quando a convocação tem `matchId` (pode
@@ -356,5 +373,31 @@ export class TeamsService {
       where: { id: callUpId },
       data: { status: dto.status, respondedAt: new Date() },
     });
+  }
+
+  // Quem precisa saber quem vai ou não: gestores do time (dono, capitão, vice)
+  // e o criador da partida, quando a convocação já tem uma partida vinculada.
+  private async notificarRespostaConvocacao(callUp: CallUpParaResposta, userId: string, status: 'CONFIRMADO' | 'RECUSADO') {
+    const jogador = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const partida = callUp.matchId
+      ? await this.prisma.match.findUnique({ where: { id: callUp.matchId }, select: { createdById: true } })
+      : null;
+
+    const destinos = new Set<string>(await this.teamAuth.obterGestoresDoTime(callUp.teamId));
+    if (partida) destinos.add(partida.createdById);
+    destinos.delete(userId);
+
+    const acao = status === 'CONFIRMADO' ? 'confirmou' : 'recusou';
+    const corpo = `${jogador?.fullName ?? 'Um jogador'} ${acao} a convocação para ${callUp.venueNameSnapshot} em ${callUp.scheduledDate.toLocaleDateString('pt-BR')} às ${callUp.scheduledTime}`;
+
+    for (const destino of destinos) {
+      await this.notifications.notificar(
+        destino,
+        'call_up_response',
+        { callUpId: callUp.id, teamId: callUp.teamId, matchId: callUp.matchId, status },
+        'Convocação respondida',
+        corpo,
+      );
+    }
   }
 }

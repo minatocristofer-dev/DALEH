@@ -14,6 +14,8 @@ describe('TeamsService — responderConvocacao (Fase 8, complemento)', () => {
     prisma = {
       callUp: { findUnique: jest.fn(), update: jest.fn() },
       matchAttendance: { upsert: jest.fn().mockResolvedValue({}) },
+      user: { findUnique: jest.fn().mockResolvedValue({ fullName: 'Jogador Teste' }) },
+      match: { findUnique: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn((fn: any) => fn(prisma)),
     };
     teamAuth = {
@@ -34,6 +36,9 @@ describe('TeamsService — responderConvocacao (Fase 8, complemento)', () => {
     matchId: 'match-1',
     userId: 'user-jogador',
     status: 'PENDENTE',
+    venueNameSnapshot: 'Arena Teste',
+    scheduledDate: new Date('2026-10-10T00:00:00.000Z'),
+    scheduledTime: '19:00',
   };
 
   it('1. jogador confirma convocação — CallUp passa pra CONFIRMADO', async () => {

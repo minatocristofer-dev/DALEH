@@ -193,6 +193,26 @@ export class MatchesService {
   // reaproveita o mesmo `TeamAuthorizationService.exigirCapitaoOuDono` usado
   // pra autorizar de verdade, então não existe risco de a checagem de
   // exibição (esse método) divergir da checagem de autorização real.
+  // Quem precisa saber quem vai ou não: criador da partida e, em partida com
+  // times, capitão/dono/vice dos dois times. Quem fez a ação não recebe.
+  private async notificarQuemGerencia(
+    partida: { id: string; createdById: string; homeTeamId: string | null; awayTeamId: string | null },
+    atorId: string,
+    titulo: string,
+    corpo: string,
+  ) {
+    const destinos = new Set<string>([partida.createdById]);
+    if (partida.homeTeamId && partida.awayTeamId) {
+      for (const teamId of [partida.homeTeamId, partida.awayTeamId]) {
+        for (const id of await this.teamAuth.obterGestoresDoTime(teamId)) destinos.add(id);
+      }
+    }
+    destinos.delete(atorId);
+    for (const destino of destinos) {
+      await this.notifications.notificar(destino, 'match_attendance', { matchId: partida.id }, titulo, corpo);
+    }
+  }
+
   // Partida avulsa: placar = gols com lado A e lado B, calculado a partir
   // dos MatchEvent (mesmo princípio do placar por time — nada guardado).
   private calcularPlacarAvulso(eventos: { eventType: string; lado: string | null }[]) {
@@ -407,20 +427,12 @@ export class MatchesService {
 
     // Melhor-esforço, fora do caminho principal — avisa o criador, exceto
     // quando ele mesmo é quem confirmou.
-    if (match.createdById !== userId) {
-      const jogador = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
-      const mensagem =
-        status === 'waitlist'
-          ? `${jogador?.fullName ?? 'Um jogador'} entrou na lista de espera da sua partida.`
-          : `${jogador?.fullName ?? 'Um jogador'} confirmou presença na sua partida.`;
-      await this.notifications.notificar(
-        match.createdById,
-        'match_attendance',
-        { matchId },
-        'Partida',
-        mensagem,
-      );
-    }
+    const jogador = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const mensagem =
+      status === 'waitlist'
+        ? `${jogador?.fullName ?? 'Um jogador'} entrou na lista de espera da partida.`
+        : `${jogador?.fullName ?? 'Um jogador'} confirmou presença na partida.`;
+    await this.notificarQuemGerencia(match, userId, 'Partida', mensagem);
 
     return attendance;
   }
@@ -433,6 +445,12 @@ export class MatchesService {
 
     const eraConfirmado = attendance.status === 'confirmed';
     await this.prisma.matchAttendance.update({ where: { id: attendance.id }, data: { status: 'declined' } });
+
+    const partida = await this.prisma.match.findUnique({ where: { id: matchId } });
+    if (partida) {
+      const jogador = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      await this.notificarQuemGerencia(partida, userId, 'Partida', `${jogador?.fullName ?? 'Um jogador'} cancelou presença na partida.`);
+    }
 
     // Promove o primeiro da lista de espera pro lugar que abriu, respeitando
     // ordem de chegada (quem entrou na fila primeiro sai primeiro).
