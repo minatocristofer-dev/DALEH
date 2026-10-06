@@ -86,10 +86,10 @@ class MatchesActions {
     ref.invalidate(minhasPartidasProvider);
   }
 
-  Future<MatchEvent> registrarEvento(String matchId, {required String userId, required String eventType, int? minute}) async {
+  Future<MatchEvent> registrarEvento(String matchId, {required String userId, required String eventType, int? minute, String? lado}) async {
     final evento = await comSessao(
       ref,
-      (token) => _repo.registrarEvento(matchId, token, userId: userId, eventType: eventType, minute: minute),
+      (token) => _repo.registrarEvento(matchId, token, userId: userId, eventType: eventType, minute: minute, lado: lado),
     );
     ref.invalidate(partidaDetalheProvider(matchId));
     return evento;

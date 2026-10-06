@@ -14,6 +14,8 @@ class MatchEvent {
   // na UI (a súmula já mostra o placar calculado pelo backend), só
   // espelhado aqui pra ficar disponível pra uma tela de histórico futura.
   final String? teamId;
+  // Lado do placar em partida avulsa ('A' ou 'B'). Nulo em partida com times.
+  final String? lado;
   final DateTime createdAt;
 
   MatchEvent({
@@ -25,6 +27,7 @@ class MatchEvent {
     this.userFullName,
     this.userAvatarUrl,
     this.teamId,
+    this.lado,
     required this.createdAt,
   });
 
@@ -39,6 +42,7 @@ class MatchEvent {
       userFullName: user?['fullName'] as String?,
       userAvatarUrl: user?['avatarUrl'] as String?,
       teamId: json['teamId'] as String?,
+      lado: json['lado'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }

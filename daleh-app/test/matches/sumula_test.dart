@@ -224,8 +224,10 @@ void main() {
     await tester.tap(find.text('SÚMULA'));
     await tester.pumpAndSettle();
 
-    expect(find.text('João marcou um gol'), findsOneWidget);
-    expect(find.text('Pedro deu uma assistência'), findsOneWidget);
+    expect(find.text('GOL'), findsOneWidget);
+    expect(find.text('ASSISTÊNCIA'), findsOneWidget);
+    expect(find.text('João'), findsWidgets);
+    expect(find.text('Pedro'), findsWidgets);
   });
 
   testWidgets('capitão/gestor vê o botão "Registrar gol"', (tester) async {
@@ -310,6 +312,7 @@ void main() {
     await tester.tap(find.text('SÚMULA'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(find.text('ELEJA O MVP DA PARTIDA'), 300, scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
     expect(find.text('ELEJA O MVP DA PARTIDA'), findsOneWidget);
   });
 
@@ -318,6 +321,7 @@ void main() {
 
     await tester.tap(find.text('SÚMULA'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Escolher MVP'), 300, scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
     await tester.tap(find.text('Escolher MVP'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Eleger MVP'));
@@ -348,6 +352,7 @@ void main() {
     await tester.tap(find.text('SÚMULA'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(find.text('MVP da partida: João'), 300, scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
     expect(find.text('MVP da partida: João'), findsOneWidget);
     expect(find.text('ELEJA O MVP DA PARTIDA'), findsNothing);
   });
@@ -357,6 +362,7 @@ void main() {
 
     await tester.tap(find.text('SÚMULA'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Finalizar partida'), 300, scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first);
     await tester.tap(find.text('Finalizar partida'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Finalizar').last);

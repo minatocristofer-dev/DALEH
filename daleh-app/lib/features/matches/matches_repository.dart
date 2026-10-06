@@ -70,6 +70,7 @@ class MatchesRepository {
     required String userId,
     required String eventType,
     int? minute,
+    String? lado,
   }) async {
     final resp = await _api.postAutenticado(
       '/matches/$matchId/events',
@@ -78,6 +79,7 @@ class MatchesRepository {
         'userId': userId,
         'eventType': eventType,
         if (minute != null) 'minute': minute,
+        if (lado != null) 'lado': lado,
       },
     );
     return MatchEvent.fromJson(resp as Map<String, dynamic>);

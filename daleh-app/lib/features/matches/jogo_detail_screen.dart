@@ -14,6 +14,7 @@ import 'matches_providers.dart';
 import 'models/match.dart';
 import 'models/match_attendance.dart';
 import 'models/match_event.dart';
+import 'sumula_widgets.dart';
 
 class JogoDetailScreen extends ConsumerWidget {
   final String matchId;
@@ -260,11 +261,6 @@ String _linhaDaPosicao(String? posicao) {
   return 'Sem posição definida';
 }
 
-class _EventoComPlacar {
-  final MatchEvent evento;
-  final String? placarNoMomento;
-  const _EventoComPlacar({required this.evento, this.placarNoMomento});
-}
 
 class _ParticipantesTab extends StatelessWidget {
   final Match partida;
@@ -481,7 +477,12 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
 
   Widget _sumulaComTimes(BuildContext context) {
     final partida = widget.partida;
-    final golsEAssistencias = (partida.events ?? []).where((e) => e.eventType == 'goal' || e.eventType == 'assist').toList();
+    const tiposNaSumula = {'goal', 'assist', 'yellow', 'red'};
+    final eventosNaSumula = (partida.events ?? []).where((e) => tiposNaSumula.contains(e.eventType)).toList();
+    final eventosComPlacar = _timelineComPlacar(partida, eventosNaSumula);
+    final doHome = eventosComPlacar.where((e) => e.evento.teamId == partida.homeTeamId).toList();
+    final doAway = eventosComPlacar.where((e) => e.evento.teamId == partida.awayTeamId).toList();
+    final semTime = eventosComPlacar.length - doHome.length - doAway.length;
     final mvp = partida.mvpEvento;
     final podeRegistrar = partida.souGestorDaSumula && !partida.partidaEncerrada;
 
@@ -498,13 +499,27 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
         children: [
-          if (golsEAssistencias.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: Text('Nenhum gol registrado ainda.', style: TextStyle(color: DalehColors.muted))),
-            )
-          else
-            ..._timelineComPlacar(partida, golsEAssistencias).map(_linhaEvento),
+          PlacarHeader(partida: partida),
+          const SizedBox(height: 16),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ColunaEventosTime(nome: partida.homeTeamName ?? 'Time A', crestUrl: partida.homeTeamCrestUrl, eventos: doHome),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ColunaEventosTime(nome: partida.awayTeamName ?? 'Time B', crestUrl: partida.awayTeamCrestUrl, eventos: doAway),
+                ),
+              ],
+            ),
+          ),
+          if (semTime > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text('$semTime evento(s) sem time definido', style: const TextStyle(color: DalehColors.muted, fontSize: 12)),
+            ),
           if (partida.status == 'finished') ...[
             const SizedBox(height: 20),
             const Divider(color: DalehColors.line),
@@ -547,36 +562,45 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
   }
 
   Widget _sumulaAvulsa(BuildContext context) {
-    final eventos = widget.partida.events ?? [];
+    final partida = widget.partida;
+    const tiposNaSumula = {'goal', 'assist', 'yellow', 'red'};
+    final eventos = _timelineComPlacar(partida, (partida.events ?? []).where((e) => tiposNaSumula.contains(e.eventType)).toList());
+    final ladoA = eventos.where((e) => e.evento.lado == 'A').toList();
+    final ladoB = eventos.where((e) => e.evento.lado == 'B').toList();
+    final semLado = eventos.length - ladoA.length - ladoB.length;
 
     return Scaffold(
-      floatingActionButton: widget.souCriador
-          ? FloatingActionButton.small(
+      floatingActionButton: widget.souCriador && !partida.partidaEncerrada
+          ? FloatingActionButton.extended(
               onPressed: () => _mostrarAdicionarEvento(context),
               backgroundColor: DalehColors.turf,
               foregroundColor: DalehColors.bg,
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.add),
+              label: const Text('Registrar evento'),
             )
           : null,
-      body: eventos.isEmpty
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Nenhum evento registrado ainda.', style: TextStyle(color: DalehColors.muted)),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: eventos.length,
-              itemBuilder: (context, i) {
-                final e = eventos[i];
-                return ListTile(
-                  leading: const Icon(Icons.sports_soccer, color: DalehColors.turf),
-                  title: Text(rotuloDoEvento(e.eventType)),
-                  subtitle: e.minute != null ? Text("${e.minute}'") : null,
-                );
-              },
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+        children: [
+          PlacarHeader(partida: partida),
+          const SizedBox(height: 16),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: ColunaEventosTime(nome: 'Time A', crestUrl: null, eventos: ladoA)),
+                const SizedBox(width: 12),
+                Expanded(child: ColunaEventosTime(nome: 'Time B', crestUrl: null, eventos: ladoB)),
+              ],
             ),
+          ),
+          if (semLado > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text('$semLado evento(s) sem lado definido', style: const TextStyle(color: DalehColors.muted, fontSize: 12)),
+            ),
+        ],
+      ),
     );
   }
 
@@ -586,49 +610,26 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
   // tentar "casar" um gol com sua assistência. O placar ao lado de cada gol é
   // calculado aqui mesmo, em ordem cronológica real (MatchEvent.createdAt,
   // Fase 9) — não é um campo que o backend devolve pronto.
-  List<_EventoComPlacar> _timelineComPlacar(Match partida, List<MatchEvent> eventos) {
+  List<EventoComPlacar> _timelineComPlacar(Match partida, List<MatchEvent> eventos) {
     final ordenados = [...eventos]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     var homeScore = 0;
     var awayScore = 0;
-    final resultado = <_EventoComPlacar>[];
+    final resultado = <EventoComPlacar>[];
     for (final e in ordenados) {
       String? placar;
       if (e.eventType == 'goal') {
-        if (e.teamId == partida.homeTeamId) {
+        final ehCasa = partida.temTimes ? e.teamId == partida.homeTeamId : e.lado == 'A';
+        final ehFora = partida.temTimes ? e.teamId == partida.awayTeamId : e.lado == 'B';
+        if (ehCasa) {
           homeScore++;
-        } else if (e.teamId == partida.awayTeamId) {
+        } else if (ehFora) {
           awayScore++;
         }
         placar = '$homeScore × $awayScore';
       }
-      resultado.add(_EventoComPlacar(evento: e, placarNoMomento: placar));
+      resultado.add(EventoComPlacar(evento: e, placarNoMomento: placar));
     }
     return resultado.reversed.toList();
-  }
-
-  Widget _linhaEvento(_EventoComPlacar item) {
-    final evento = item.evento;
-    final ehGol = evento.eventType == 'goal';
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Icon(ehGol ? Icons.sports_soccer : Icons.adjust, size: 16, color: ehGol ? DalehColors.turf : DalehColors.info),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              '${evento.userFullName ?? 'Jogador'} ${ehGol ? 'marcou um gol' : 'deu uma assistência'}',
-              style: TextStyle(
-                fontWeight: ehGol ? FontWeight.w700 : FontWeight.w500,
-                color: ehGol ? DalehColors.text : DalehColors.textSecondary,
-              ),
-            ),
-          ),
-          if (item.placarNoMomento != null)
-            Text(item.placarNoMomento!, style: const TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 12)),
-        ],
-      ),
-    );
   }
 
   Widget _cartaoMvp(MatchEvent mvp) {
@@ -839,6 +840,7 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
 
     String? jogadorId = confirmados.first.userId;
     String tipo = 'goal';
+    String? lado;
     final minutoCtrl = TextEditingController();
     var enviando = false;
     String? erro;
@@ -876,6 +878,19 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
                     onChanged: (v) => setState(() => tipo = v ?? tipo),
                   ),
                   const SizedBox(height: 14),
+                  if (!widget.partida.temTimes) ...[
+                    const SizedBox(height: 14),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'A', label: Text('Time A')),
+                        ButtonSegment(value: 'B', label: Text('Time B')),
+                      ],
+                      selected: lado == null ? <String>{} : {lado!},
+                      emptySelectionAllowed: true,
+                      onSelectionChanged: (sel) => setState(() => lado = sel.isEmpty ? null : sel.first),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
                   TextField(
                     controller: minutoCtrl,
                     keyboardType: TextInputType.number,
@@ -890,6 +905,10 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
                     label: 'Registrar',
                     carregando: enviando,
                     onPressed: () async {
+                      if (!widget.partida.temTimes && lado == null) {
+                        setState(() => erro = 'Escolha o lado do lance (Time A ou Time B).');
+                        return;
+                      }
                       setState(() {
                         enviando = true;
                         erro = null;
@@ -900,6 +919,7 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
                               userId: jogadorId!,
                               eventType: tipo,
                               minute: int.tryParse(minutoCtrl.text.trim()),
+                              lado: widget.partida.temTimes ? null : lado,
                             );
                         if (ctx.mounted) Navigator.of(ctx).pop();
                       } on ApiException catch (e) {
