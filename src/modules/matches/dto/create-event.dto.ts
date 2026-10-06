@@ -11,4 +11,9 @@ export class CreateEventDto {
   @IsInt()
   @Min(0)
   minute?: number;
+
+  // Só pra partida avulsa (sem times): de qual lado do placar é o evento.
+  @IsOptional()
+  @IsIn(['A', 'B'])
+  lado?: 'A' | 'B';
 }

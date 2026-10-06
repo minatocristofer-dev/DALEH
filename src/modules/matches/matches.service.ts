@@ -75,7 +75,7 @@ export class MatchesService {
     const temTimes = !!(partida.homeTeamId && partida.awayTeamId);
     const { homeScore, awayScore } = temTimes
       ? this.calcularPlacar(partida.homeTeamId!, partida.awayTeamId!, partida.events)
-      : { homeScore: null, awayScore: null };
+      : this.calcularPlacarAvulso(partida.events);
 
     let souGestorDaSumula = false;
     if (userId) {
@@ -193,6 +193,16 @@ export class MatchesService {
   // reaproveita o mesmo `TeamAuthorizationService.exigirCapitaoOuDono` usado
   // pra autorizar de verdade, então não existe risco de a checagem de
   // exibição (esse método) divergir da checagem de autorização real.
+  // Partida avulsa: placar = gols com lado A e lado B, calculado a partir
+  // dos MatchEvent (mesmo princípio do placar por time — nada guardado).
+  private calcularPlacarAvulso(eventos: { eventType: string; lado: string | null }[]) {
+    const gols = (eventos ?? []).filter((e) => e.eventType === 'goal');
+    return {
+      homeScore: gols.filter((e) => e.lado === 'A').length,
+      awayScore: gols.filter((e) => e.lado === 'B').length,
+    };
+  }
+
   private async souGestorDeUmDosTimes(homeTeamId: string, awayTeamId: string, userId: string): Promise<boolean> {
     try {
       await this.teamAuth.exigirCapitaoOuDono(homeTeamId, userId);
@@ -473,13 +483,18 @@ export class MatchesService {
     // times e jogador determinável) — mesma lógica de `registrarGol`, só que
     // best-effort: essa rota não exige que o time seja determinável (continua
     // aceitando cartão/MVP de partida avulsa, por exemplo).
-    const teamId =
-      match.homeTeamId && match.awayTeamId
-        ? await this.timeDoJogador(match.homeTeamId, match.awayTeamId, dto.userId)
-        : null;
+    const temTimes = !!(match.homeTeamId && match.awayTeamId);
+    if (temTimes && dto.lado) {
+      throw new BadRequestException('Partidas com times usam o time do jogador, não o lado do placar.');
+    }
+    if (!temTimes && dto.eventType === 'goal' && !dto.lado) {
+      throw new BadRequestException('Informe o lado (Time A ou Time B) do gol.');
+    }
+
+    const teamId = temTimes ? await this.timeDoJogador(match.homeTeamId!, match.awayTeamId!, dto.userId) : null;
 
     return this.prisma.matchEvent.create({
-      data: { matchId, userId: dto.userId, teamId, eventType: dto.eventType, minute: dto.minute },
+      data: { matchId, userId: dto.userId, teamId, lado: dto.lado ?? null, eventType: dto.eventType, minute: dto.minute },
     });
   }
 

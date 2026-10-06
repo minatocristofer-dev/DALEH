@@ -423,6 +423,9 @@ model MatchEvent {
   // puderam ser determinados com segurança na migração de dados.
   teamId    String?  @map("team_id")
   team      Team?    @relation(fields: [teamId], references: [id])
+  // Lado do placar em partida avulsa (sem times vinculados): 'A' ou 'B'.
+  // Nulo em partidas com times (o time vem de teamId) e em eventos sem lado.
+  lado      String?  @map("lado")
   eventType String   @map("event_type") // goal | assist | yellow | red | mvp
   minute    Int?
   createdAt DateTime @default(now()) @map("created_at")

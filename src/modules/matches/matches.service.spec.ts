@@ -54,12 +54,12 @@ describe('MatchesService', () => {
       prisma.match.findUnique.mockResolvedValue(partidaPrivada);
 
       // Partida sem os dois times (homeTeamId/awayTeamId null) — obterPartida
-      // acrescenta homeScore/awayScore nulos e souGestorDaSumula calculado
+      // acrescenta homeScore/awayScore (0 × 0 sem gols com lado) e souGestorDaSumula calculado
       // (aqui, true: o criador administra a súmula de partida avulsa).
       await expect(service.obterPartida('match-1', 'user-criador')).resolves.toEqual({
         ...partidaPrivada,
-        homeScore: null,
-        awayScore: null,
+        homeScore: 0,
+        awayScore: 0,
         souGestorDaSumula: true,
         resumoPagamento: expect.any(Object),
       });
@@ -71,8 +71,8 @@ describe('MatchesService', () => {
 
       await expect(service.obterPartida('match-1', 'user-participante')).resolves.toEqual({
         ...partidaPrivada,
-        homeScore: null,
-        awayScore: null,
+        homeScore: 0,
+        awayScore: 0,
         souGestorDaSumula: false,
         resumoPagamento: expect.any(Object),
       });
