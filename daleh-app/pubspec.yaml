@@ -70,18 +70,16 @@ dev_dependencies:
   # código que o app leva pro celular, fica só como ferramenta de build.
   flutter_launcher_icons: ^0.14.3
 
-# Config do flutter_launcher_icons — ícone definitivo do app (QA de
-# 2026-09-24). Só ícone "legacy" (sem adaptive_icon_foreground/background):
-# a arte já vem com fundo e cantos arredondados embutidos numa imagem só
-# (sem camada separada de primeiro plano transparente), então gerar um
-# adaptive icon "de verdade" a partir dela criaria uma moldura dupla (o
-# quadrado arredondado da arte dentro da máscara adaptativa do Android).
-# Sem esse XML, o launcher aplica a própria máscara/sombra automaticamente
-# — comportamento padrão do Android pra ícone legacy, não é um problema.
+# Config do flutter_launcher_icons — ícone do app. Adaptive icon: fundo preto
+# sólido (#030303, mesma cor do fundo da logo) e primeiro plano com o escudo
+# centralizado, pra o escudo preencher a máscara circular do launcher. O
+# app_icon.png continua sendo o ícone legacy (fallback em Androids antigos).
 flutter_launcher_icons:
   android: true
   ios: false
   image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
