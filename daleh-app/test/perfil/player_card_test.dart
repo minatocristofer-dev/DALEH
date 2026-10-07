@@ -135,13 +135,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('sem foto enviada, mostra o template da camisa em branco (nunca um espaço vazio ou rosto inventado)', (tester) async {
+  testWidgets('sem foto enviada, mostra a silhueta neutra e nunca um rosto inventado', (tester) async {
     await tester.pumpWidget(_comTema(PlayerCard(perfil: _perfilCompleto())));
 
-    final placeholder = tester.widgetList<Image>(find.byType(Image)).where(
-      (img) => img.image is AssetImage && (img.image as AssetImage).assetName == 'assets/jerseys/jersey_solto.png',
-    );
-    expect(placeholder, isNotEmpty);
+    expect(find.byIcon(Icons.person_outline), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }

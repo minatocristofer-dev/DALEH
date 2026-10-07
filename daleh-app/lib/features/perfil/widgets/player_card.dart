@@ -8,8 +8,8 @@ import '../models/meu_perfil.dart';
 
 /// A "carta de jogador" do DALEH — layout definido pelo mockup "PERFIL —
 /// PLAYER CARD" (QA de 2026-09-21): canto superior direito chanfrado, foto
-/// do jogador encaixada nesse canto (a mesma foto composta com a camisa do
-/// DALEH, gerada em EditarFotoScreen), nome em duas linhas, linhas de
+/// do jogador encaixada nesse canto (card padronizado com nome e posição,
+/// gerado em EditarFotoScreen), nome em duas linhas, linhas de
 /// informação com ícone, time em destaque com o escudo à direita, e
 /// estatísticas em 4 colunas.
 ///
@@ -200,37 +200,11 @@ class PlayerCard extends StatelessWidget {
     );
   }
 
-  // Sem foto enviada ainda (a maioria dos perfis hoje) — mostra a mesma
-  // estrutura do resultado final (silhueta + faixa da camisa na base) em
-  // vez de um espaço vazio, só pra dar uma pista visual de onde a foto vai
-  // aparecer. Não é dado inventado: é literalmente o template usado em
-  // EditarFotoScreen.
+  // Sem foto enviada ainda: silhueta neutra no mesmo formato do card final.
+  // A foto enviada já vem com nome e posição (ver EditarFotoScreen), então
+  // aqui não há mais camisa na base.
   Widget _placeholderFoto() {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Align(
-          alignment: const Alignment(0, -0.22),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: DalehColors.turf.withValues(alpha: 0.5), width: 1.5),
-            ),
-            child: const Icon(Icons.person_outline, size: 22, color: DalehColors.muted),
-          ),
-        ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: FractionallySizedBox(
-            heightFactor: fracaoCamisaFotoPerfil,
-            widthFactor: 1,
-            child: Image.asset('assets/jerseys/jersey_solto.png', fit: BoxFit.cover),
-          ),
-        ),
-      ],
-    );
+    return const Center(child: Icon(Icons.person_outline, size: 64, color: DalehColors.muted));
   }
 
   Widget _linhaIcone(IconData icone, String texto) {

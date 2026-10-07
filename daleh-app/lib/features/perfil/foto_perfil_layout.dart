@@ -1,11 +1,8 @@
-/// Proporção do quadro da foto de perfil (jogador + camisa do DALEH) — usada
-/// tanto em `EditarFotoScreen` (onde a foto é composta) quanto em
-/// `PlayerCard` (onde o resultado final aparece), pra uma bater com a outra.
-const aspectoFotoPerfil = 0.85;
+/// Proporção do card da foto de perfil (retrato: foto + faixa com nome e
+/// posição). Usada em `EditarFotoScreen` (onde o card é gerado) e em
+/// `PlayerCard` (onde ele aparece), pra as duas baterem.
+const aspectoFotoPerfil = 0.8;
 
-/// Fração da altura do quadro ocupada pela camisa — ela fica como uma faixa
-/// fixa na base, nunca cobrindo mais que isso. Pedido explícito do usuário
-/// em QA (2026-09-21): a camisa "espremia" o rosto numa fresta pequena;
-/// agora é o contrário, a foto ocupa o quadro inteiro e a camisa é só uma
-/// moldura na parte de baixo.
-const fracaoCamisaFotoPerfil = 1 / 3;
+/// Fração da altura do card ocupada pela faixa inferior com nome e posição.
+/// A foto ocupa o restante, do topo até a faixa.
+const fracaoFaixaFotoPerfil = 0.2;
