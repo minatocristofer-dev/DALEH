@@ -53,6 +53,9 @@ dependencies:
   # perfil — sem isso o `http` manda "application/octet-stream" e o backend
   # recusa o arquivo (era essa a causa do erro "tem que ser PNG ou JPEG").
   http_parser: ^4.1.2
+  # Detecção de rosto no aparelho (grátis, sem API) — centraliza o rosto
+  # automaticamente no enquadramento da foto de perfil.
+  google_mlkit_face_detection: ^0.13.1
 
 dev_dependencies:
   flutter_test:
