@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/cadastro_screen.dart';
+import 'features/auth/seletor_modo_screen.dart';
+import 'features/dirigente/dirigente_shell.dart';
 import 'features/home_shell.dart';
+import 'features/onboarding/onboarding_screen.dart';
+import 'features/venues/locador_shell.dart';
+import 'core/auth_storage.dart';
 import 'theme/daleh_theme.dart';
 
 class DalehApp extends StatelessWidget {
@@ -36,11 +41,35 @@ class _RaizState extends ConsumerState<_Raiz> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
 
-    // Logado: o app inteiro vira a navegação principal (bottom nav com
-    // Times, Jogos, etc.) — não faz sentido dentro do card centralizado
-    // usado só pras telas de autenticação.
-    if (!auth.verificandoSessao && auth.logado) {
-      return const HomeShell();
+    // Splash: enquanto a sessão salva ainda está sendo lida do storage.
+    if (auth.verificandoSessao) {
+      return const _Splash();
+    }
+
+    // Onboarding: mostrado uma única vez, só pra quem ainda não tem sessão
+    // (nunca interrompe quem já está logado).
+    if (!auth.logado && !auth.onboardingVisto) {
+      return OnboardingScreen(onConcluir: () => ref.read(authControllerProvider.notifier).concluirOnboarding());
+    }
+
+    if (auth.logado) {
+      // Seletor de Modo: aparece depois de todo login/cadastro novo (nunca
+      // em sessão restaurada) e também quando o usuário pede "Trocar modo"
+      // dentro do app, sem precisar deslogar.
+      if (auth.mostrarSeletorModo) {
+        return const SeletorModoScreen();
+      }
+      // Mesma conta, três conjuntos de telas diferentes — o modo escolhido
+      // aqui NUNCA concede permissão nenhuma por si só (ver
+      // AuthStorage.ModoAcesso); quem autoriza é sempre o backend.
+      switch (auth.modoAcesso) {
+        case ModoAcesso.locador:
+          return const LocadorShell();
+        case ModoAcesso.dirigente:
+          return const DirigenteShell();
+        case ModoAcesso.jogador:
+          return const HomeShell();
+      }
     }
 
     return Scaffold(
@@ -111,6 +140,44 @@ class _RaizState extends ConsumerState<_Raiz> {
             child: Icon(icone, color: DalehColors.bg, size: 18),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Splash curta, só enquanto a sessão salva é lida do storage — mantém a
+/// identidade visual do DALEH, sem animação pesada.
+class _Splash extends StatelessWidget {
+  const _Splash();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: DalehColors.bg,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(color: DalehColors.turf, borderRadius: BorderRadius.circular(18)),
+              child: const Icon(Icons.sports_soccer, color: DalehColors.bg, size: 36),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'DALEH',
+              style: TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: 2),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Cada jogo constrói sua história.',
+              style: TextStyle(color: DalehColors.muted, fontSize: 13),
+            ),
+            const SizedBox(height: 28),
+            const CircularProgressIndicator(color: DalehColors.turf),
+          ],
+        ),
       ),
     );
   }

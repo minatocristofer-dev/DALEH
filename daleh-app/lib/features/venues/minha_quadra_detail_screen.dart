@@ -10,6 +10,7 @@ import '../../theme/daleh_theme.dart';
 import '../perfil/perfil_publico_screen.dart';
 import 'models/booking.dart';
 import 'models/venue.dart';
+import 'models/venue_blocked_date.dart';
 import 'models/venue_slot.dart';
 import 'venue_form_screen.dart';
 import 'venues_providers.dart';
@@ -24,7 +25,7 @@ class MinhaQuadraDetailScreen extends ConsumerWidget {
     final quadraAsync = ref.watch(quadraDetalheProvider(venueId));
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       initialIndex: abaInicial,
       child: Scaffold(
         appBar: AppBar(
@@ -41,7 +42,10 @@ class MinhaQuadraDetailScreen extends ConsumerWidget {
               orElse: () => const SizedBox.shrink(),
             ),
           ],
-          bottom: const TabBar(tabs: [Tab(text: 'HORÁRIOS'), Tab(text: 'RESERVAS')]),
+          bottom: const TabBar(
+            isScrollable: true,
+            tabs: [Tab(text: 'HORÁRIOS'), Tab(text: 'RESERVAS'), Tab(text: 'BLOQUEIOS')],
+          ),
         ),
         body: quadraAsync.when(
           loading: () => const LoadingState(),
@@ -50,6 +54,7 @@ class MinhaQuadraDetailScreen extends ConsumerWidget {
             children: [
               _HorariosBody(quadra: quadra),
               _ReservasRecebidasBody(venueId: venueId),
+              _BloqueiosBody(venueId: venueId),
             ],
           ),
         ),
@@ -356,5 +361,133 @@ class _HorariosBody extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+String _dataCurta(DateTime d) {
+  final l = d.toLocal();
+  return '${l.day.toString().padLeft(2, '0')}/${l.month.toString().padLeft(2, '0')}/${l.year}';
+}
+
+/// Datas em que o dono tirou a quadra inteira de disponibilidade (feriado,
+/// manutenção) — só quem gerencia a quadra vê e mexe nessa aba; o jogador só
+/// enxerga o resultado (nenhum horário disponível naquele dia).
+class _BloqueiosBody extends ConsumerWidget {
+  final String venueId;
+  const _BloqueiosBody({required this.venueId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bloqueiosAsync = ref.watch(bloqueiosDaQuadraProvider(venueId));
+
+    return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _mostrarBloquearData(context, ref),
+        backgroundColor: DalehColors.turf,
+        foregroundColor: DalehColors.bg,
+        icon: const Icon(Icons.event_busy_outlined),
+        label: const Text('Bloquear data'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(bloqueiosDaQuadraProvider(venueId)),
+        child: bloqueiosAsync.when(
+          loading: () => const LoadingState(),
+          error: (erro, _) => ListView(
+            children: [ErrorState(erro: erro, onTentarNovamente: () => ref.invalidate(bloqueiosDaQuadraProvider(venueId)))],
+          ),
+          data: (bloqueios) {
+            if (bloqueios.isEmpty) {
+              return ListView(
+                children: const [
+                  SizedBox(height: 40),
+                  EmptyState(
+                    icon: Icons.event_available_outlined,
+                    titulo: 'Nenhuma data bloqueada',
+                    subtitulo: 'Bloqueie um feriado ou um dia de manutenção pra tirar a quadra da disponibilidade.',
+                  ),
+                ],
+              );
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+              itemCount: bloqueios.length,
+              separatorBuilder: (_, _) => const Divider(color: DalehColors.line),
+              itemBuilder: (context, i) {
+                final b = bloqueios[i];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event_busy, color: DalehColors.danger),
+                  title: Text(_dataCurta(b.date)),
+                  subtitle: b.reason != null && b.reason!.isNotEmpty ? Text(b.reason!) : null,
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: DalehColors.danger),
+                    onPressed: () => _confirmarDesbloqueio(context, ref, b),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmarDesbloqueio(BuildContext context, WidgetRef ref, VenueBlockedDate bloqueio) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Desbloquear data?'),
+        content: Text('A quadra volta a ficar disponível em ${_dataCurta(bloqueio.date)}.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Desbloquear', style: TextStyle(color: DalehColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    try {
+      await ref.read(venuesActionsProvider).desbloquearData(venueId, bloqueio.id);
+    } on ApiException catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _mostrarBloquearData(BuildContext context, WidgetRef ref) async {
+    final hoje = DateTime.now();
+    final data = await showDatePicker(
+      context: context,
+      initialDate: hoje,
+      firstDate: hoje,
+      lastDate: hoje.add(const Duration(days: 365 * 2)),
+    );
+    if (data == null || !context.mounted) return;
+
+    final motivoCtrl = TextEditingController();
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Bloquear ${_dataCurta(data)}'),
+        content: TextField(
+          controller: motivoCtrl,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Motivo (opcional)'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Bloquear')),
+        ],
+      ),
+    );
+    if (confirmar != true || !context.mounted) return;
+
+    try {
+      final dataIso = '${data.year.toString().padLeft(4, '0')}-${data.month.toString().padLeft(2, '0')}-${data.day.toString().padLeft(2, '0')}';
+      await ref.read(venuesActionsProvider).bloquearData(venueId, data: dataIso, motivo: motivoCtrl.text.trim());
+    } on ApiException catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 }

@@ -190,6 +190,67 @@ void main() {
       );
     });
 
+    test('bloquearData envia a data e o motivo', () async {
+      final fake = FakeApiClient(respostas: {
+        '/venues/v1/blocked-dates': {
+          'id': 'b1',
+          'venueId': 'v1',
+          'date': '2026-12-25T00:00:00.000Z',
+          'reason': 'Feriado',
+        },
+      });
+      final repo = VenuesRepository(fake);
+
+      await repo.bloquearData('v1', token, data: '2026-12-25', motivo: 'Feriado');
+
+      expect(fake.chamadas.single.corpo, {'date': '2026-12-25', 'reason': 'Feriado'});
+    });
+
+    test('bloquearData sem motivo não manda a chave reason', () async {
+      final fake = FakeApiClient(respostas: {
+        '/venues/v1/blocked-dates': {'id': 'b1', 'venueId': 'v1', 'date': '2026-12-25T00:00:00.000Z'},
+      });
+      final repo = VenuesRepository(fake);
+
+      await repo.bloquearData('v1', token, data: '2026-12-25');
+
+      expect(fake.chamadas.single.corpo, {'date': '2026-12-25'});
+    });
+
+    test('bloquearData numa data já bloqueada propaga o conflito', () async {
+      final fake = FakeApiClient()..erroParaLancar = ApiException('Essa data já está bloqueada.', kind: ApiErrorKind.conflict);
+      final repo = VenuesRepository(fake);
+
+      expect(
+        () => repo.bloquearData('v1', token, data: '2026-12-25'),
+        throwsA(isA<ApiException>().having((e) => e.kind, 'kind', ApiErrorKind.conflict)),
+      );
+    });
+
+    test('listarBloqueios faz GET /venues/:id/blocked-dates', () async {
+      final fake = FakeApiClient(respostas: {
+        '/venues/v1/blocked-dates': [
+          {'id': 'b1', 'venueId': 'v1', 'date': '2026-12-25T00:00:00.000Z', 'reason': 'Feriado'},
+        ],
+      });
+      final repo = VenuesRepository(fake);
+
+      final bloqueios = await repo.listarBloqueios('v1', token);
+
+      expect(fake.chamadas.single.path, '/venues/v1/blocked-dates');
+      expect(bloqueios.single.reason, 'Feriado');
+    });
+
+    test('desbloquearData propaga ApiException 403 quando não é o dono', () async {
+      final fake = FakeApiClient()..erroParaLancar = ApiException('Você não é o dono dessa quadra.', kind: ApiErrorKind.forbidden);
+      final repo = VenuesRepository(fake);
+
+      expect(
+        () => repo.desbloquearData('v1', 'b1', token),
+        throwsA(isA<ApiException>().having((e) => e.kind, 'kind', ApiErrorKind.forbidden)),
+      );
+    });
+
     test('reservar envia só a data no corpo (o horário pertence ao slot)', () async {
       final fake = FakeApiClient(respostas: {
         '/venues/v1/slots/s1/bookings': {

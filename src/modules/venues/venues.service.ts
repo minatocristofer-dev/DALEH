@@ -4,6 +4,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { CreateSlotDto } from './dto/create-slot.dto';
+import { CreateBlockedDateDto } from './dto/create-blocked-date.dto';
+import { Prisma } from '@prisma/client';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 
@@ -65,11 +67,50 @@ export class VenuesService {
     return { removido: true };
   }
 
+  // Bloqueio de data — só o dono da quadra gerencia (ver authorization em
+  // `exigirDono`). O jogador nunca chama esses métodos, só enxerga o
+  // resultado em `disponibilidade`.
+  async bloquearData(venueId: string, userId: string, dto: CreateBlockedDateDto) {
+    await this.exigirDono(venueId, userId);
+    const data = inicioDoDia(dto.date);
+    try {
+      return await this.prisma.venueBlockedDate.create({
+        data: { venueId, date: data, reason: dto.reason },
+      });
+    } catch (erro) {
+      if (erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002') {
+        throw new ConflictException('Essa data já está bloqueada.');
+      }
+      throw erro;
+    }
+  }
+
+  async desbloquearData(venueId: string, bloqueioId: string, userId: string) {
+    await this.exigirDono(venueId, userId);
+    const bloqueio = await this.prisma.venueBlockedDate.findUnique({ where: { id: bloqueioId } });
+    if (!bloqueio || bloqueio.venueId !== venueId) throw new NotFoundException('Bloqueio não encontrado.');
+    await this.prisma.venueBlockedDate.delete({ where: { id: bloqueioId } });
+    return { removido: true };
+  }
+
+  async listarBloqueios(venueId: string, userId: string) {
+    await this.exigirDono(venueId, userId);
+    return this.prisma.venueBlockedDate.findMany({ where: { venueId }, orderBy: { date: 'asc' } });
+  }
+
   async disponibilidade(venueId: string, dateStr: string) {
     await this.obterQuadra(venueId);
 
     const inicio = inicioDoDia(dateStr);
     const fim = fimDoDia(inicio);
+
+    // Data bloqueada pelo dono (feriado, manutenção) — nenhum horário
+    // disponível nesse dia, sem precisar listar slot por slot.
+    const bloqueado = await this.prisma.venueBlockedDate.findUnique({
+      where: { venueId_date: { venueId, date: inicio } },
+    });
+    if (bloqueado) return [];
+
     // 0=Segunda...6=Domingo (padrão do schema); Date.getUTCDay() é 0=Domingo...6=Sábado.
     const diaSemana = (inicio.getUTCDay() + 6) % 7;
 

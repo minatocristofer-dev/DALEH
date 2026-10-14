@@ -13,12 +13,25 @@ import 'package:daleh_app/features/auth/auth_controller.dart';
 /// testes, sem tocar no armazenamento real usado pelo app.
 class FakeAuthStorage implements AuthStorage {
   String? _token;
+  ModoAcesso _modo = ModoAcesso.jogador;
 
   @override
   Future<void> salvarToken(String token) async => _token = token;
 
   @override
   Future<String?> obterToken() async => _token;
+
+  @override
+  Future<void> salvarModoAcesso(ModoAcesso modo) async => _modo = modo;
+
+  @override
+  Future<ModoAcesso> obterModoAcesso() async => _modo;
+
+  @override
+  Future<bool> obterOnboardingVisto() async => true;
+
+  @override
+  Future<void> salvarOnboardingVisto() async {}
 
   @override
   Future<void> limpar() async => _token = null;

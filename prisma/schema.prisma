@@ -325,6 +325,7 @@ model Venue {
   avgRating      Float    @default(0) @map("avg_rating")
 
   slots          VenueSlot[]
+  blockedDates   VenueBlockedDate[]
   challenges     TeamChallenge[]
   matches        Match[]
 
@@ -344,6 +345,22 @@ model VenueSlot {
   bookings    Booking[]
 
   @@map("venue_slots")
+}
+
+// Data em que o dono tira a quadra inteira de disponibilidade (feriado,
+// manutenção) — não é um horário recorrente, é uma exceção pontual. Só o
+// dono da quadra bloqueia/desbloqueia; o jogador só vê o resultado (nenhum
+// horário disponível naquele dia).
+model VenueBlockedDate {
+  id        String   @id @default(uuid())
+  venueId   String   @map("venue_id")
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  date      DateTime
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([venueId, date])
+  @@map("venue_blocked_dates")
 }
 
 model Booking {

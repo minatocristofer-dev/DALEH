@@ -25,7 +25,12 @@ class PerfilScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'Trocar foto de perfil',
             icon: const Icon(Icons.camera_alt_outlined),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EditarFotoScreen(nome: perfilAsync.valueOrNull?.fullName ?? '', posicao: perfilAsync.valueOrNull?.modalidadePrincipal?.posicaoPrincipal))),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EditarFotoScreen())),
+          ),
+          IconButton(
+            tooltip: 'Trocar modo',
+            icon: const Icon(Icons.swap_horiz),
+            onPressed: () => ref.read(authControllerProvider.notifier).abrirSeletorDeModo(),
           ),
           IconButton(
             tooltip: 'Sair',

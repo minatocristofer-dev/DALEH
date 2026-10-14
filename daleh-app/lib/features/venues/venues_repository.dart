@@ -1,6 +1,7 @@
 import '../../core/api_client.dart';
 import 'models/booking.dart';
 import 'models/venue.dart';
+import 'models/venue_blocked_date.dart';
 import 'models/venue_slot.dart';
 
 /// Só chama endpoints que já existem em `src/modules/venues` — nenhum
@@ -117,6 +118,29 @@ class VenuesRepository {
 
   Future<void> removerSlot(String venueId, String slotId, String token) {
     return _api.deleteAutenticado('/venues/$venueId/slots/$slotId', token: token);
+  }
+
+  /// Bloqueio de data — só o dono chama (o backend responde 403 pra qualquer
+  /// outro usuário, igual `reservasDaQuadra`).
+  Future<VenueBlockedDate> bloquearData(String venueId, String token, {required String data, String? motivo}) async {
+    final resp = await _api.postAutenticado(
+      '/venues/$venueId/blocked-dates',
+      token: token,
+      corpo: {
+        'date': data,
+        if (motivo != null && motivo.isNotEmpty) 'reason': motivo,
+      },
+    );
+    return VenueBlockedDate.fromJson(resp as Map<String, dynamic>);
+  }
+
+  Future<List<VenueBlockedDate>> listarBloqueios(String venueId, String token) async {
+    final lista = await _api.getLista('/venues/$venueId/blocked-dates', token: token);
+    return lista.map((b) => VenueBlockedDate.fromJson(b as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> desbloquearData(String venueId, String bloqueioId, String token) {
+    return _api.deleteAutenticado('/venues/$venueId/blocked-dates/$bloqueioId', token: token);
   }
 
   Future<List<VenueSlot>> disponibilidade(String venueId, String data, String token) async {

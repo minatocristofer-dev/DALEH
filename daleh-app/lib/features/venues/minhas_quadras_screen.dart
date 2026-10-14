@@ -9,15 +9,34 @@ import 'minha_quadra_detail_screen.dart';
 import 'venue_form_screen.dart';
 import 'venues_providers.dart';
 
-class MinhasQuadrasScreen extends ConsumerWidget {
+/// Acessada de dois jeitos: a partir de "Explorar Quadras" (um jogador
+/// comum que também é dono de uma quadra) e, direto, pelo `LocadorShell`
+/// (quem entrou escolhendo o modo "Dono de quadra" no login). O conteúdo é
+/// o mesmo — só muda quem fica em volta dele (`MinhasQuadrasBody`).
+class MinhasQuadrasScreen extends StatelessWidget {
   const MinhasQuadrasScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Minhas quadras')),
+      body: const MinhasQuadrasBody(),
+    );
+  }
+}
+
+/// Lista de quadras do dono + botão de criar — um `Scaffold` próprio (pelo
+/// FAB), pensado pra ficar dentro do `body` de outro `Scaffold` (funciona
+/// normalmente no Flutter; é assim que dá pra reaproveitar o mesmo FAB tanto
+/// aqui quanto no `LocadorShell`, sem duplicar a lógica da lista).
+class MinhasQuadrasBody extends ConsumerWidget {
+  const MinhasQuadrasBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final quadrasAsync = ref.watch(minhasQuadrasProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Minhas quadras')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VenueFormScreen())),
         backgroundColor: DalehColors.turf,

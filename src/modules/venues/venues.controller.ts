@@ -6,6 +6,7 @@ import { CreateVenueDto } from './dto/create-venue.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { CreateSlotDto } from './dto/create-slot.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateBlockedDateDto } from './dto/create-blocked-date.dto';
 
 // Visualizar/explorar quadras é público (não exige login): listar, detalhe e
 // disponibilidade. Só ações que alteram estado (criar/editar quadra, slots,
@@ -57,6 +58,28 @@ export class VenuesController {
   @Get(':id/availability')
   disponibilidade(@Param('id') id: string, @Query('date') date: string) {
     return this.venuesService.disponibilidade(id, date);
+  }
+
+  @Post(':id/blocked-dates')
+  @UseGuards(AuthGuard('jwt'))
+  bloquearData(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado, @Body() dto: CreateBlockedDateDto) {
+    return this.venuesService.bloquearData(id, user.id, dto);
+  }
+
+  @Get(':id/blocked-dates')
+  @UseGuards(AuthGuard('jwt'))
+  listarBloqueios(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado) {
+    return this.venuesService.listarBloqueios(id, user.id);
+  }
+
+  @Delete(':id/blocked-dates/:blockedId')
+  @UseGuards(AuthGuard('jwt'))
+  desbloquearData(
+    @Param('id') id: string,
+    @Param('blockedId') blockedId: string,
+    @CurrentUser() user: UsuarioAutenticado,
+  ) {
+    return this.venuesService.desbloquearData(id, blockedId, user.id);
   }
 
   @Get(':id/bookings')

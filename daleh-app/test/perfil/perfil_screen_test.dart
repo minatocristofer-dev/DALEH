@@ -23,6 +23,14 @@ class _AuthStorageDeTeste implements AuthStorage {
   @override
   Future<String?> obterToken() async => 'token-de-teste';
   @override
+  Future<void> salvarModoAcesso(ModoAcesso modo) async {}
+  @override
+  Future<ModoAcesso> obterModoAcesso() async => ModoAcesso.jogador;
+  @override
+  Future<bool> obterOnboardingVisto() async => true;
+  @override
+  Future<void> salvarOnboardingVisto() async {}
+  @override
   Future<void> limpar() async => limpou = true;
 }
 

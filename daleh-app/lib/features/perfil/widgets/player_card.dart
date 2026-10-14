@@ -5,6 +5,7 @@ import '../../../theme/daleh_theme.dart';
 import '../conquistas.dart';
 import '../foto_perfil_layout.dart';
 import '../models/meu_perfil.dart';
+import 'moldura_foto.dart';
 
 /// A "carta de jogador" do DALEH — layout definido pelo mockup "PERFIL —
 /// PLAYER CARD" (QA de 2026-09-21): canto superior direito chanfrado, foto
@@ -185,7 +186,7 @@ class PlayerCard extends StatelessWidget {
     return AspectRatio(
       aspectRatio: aspectoFotoPerfil,
       child: ClipPath(
-        clipper: const _ClipCantoChanfrado(raio: 14, chanfro: 20),
+        clipper: const ClipFotoJogador(),
         child: Container(
           color: DalehColors.surface2,
           child: perfil.avatarUrl != null && perfil.avatarUrl!.isNotEmpty
@@ -304,20 +305,6 @@ class PlayerCard extends StatelessWidget {
 // os outros três arredondados — o mesmo desenho é usado tanto no card
 // inteiro quanto no encaixe da foto (com raio/chanfro menores), pra um
 // "aninhar" visualmente no outro.
-Path _caminhoCantoChanfrado(Size size, {required double raio, required double chanfro}) {
-  final w = size.width, h = size.height;
-  return Path()
-    ..moveTo(raio, 0)
-    ..lineTo(w - chanfro, 0)
-    ..lineTo(w, chanfro)
-    ..lineTo(w, h - raio)
-    ..quadraticBezierTo(w, h, w - raio, h)
-    ..lineTo(raio, h)
-    ..quadraticBezierTo(0, h, 0, h - raio)
-    ..lineTo(0, raio)
-    ..quadraticBezierTo(0, 0, raio, 0)
-    ..close();
-}
 
 class _ClipCantoChanfrado extends CustomClipper<Path> {
   final double raio;
@@ -325,7 +312,7 @@ class _ClipCantoChanfrado extends CustomClipper<Path> {
   const _ClipCantoChanfrado({required this.raio, required this.chanfro});
 
   @override
-  Path getClip(Size size) => _caminhoCantoChanfrado(size, raio: raio, chanfro: chanfro);
+  Path getClip(Size size) => caminhoCantoChanfrado(size, raio: raio, chanfro: chanfro);
 
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
@@ -339,7 +326,7 @@ class _MolduraCartao extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final caminho = _caminhoCantoChanfrado(size, raio: 24, chanfro: 36);
+    final caminho = caminhoCantoChanfrado(size, raio: 24, chanfro: 36);
 
     final preenchimento = Paint()
       ..shader = const LinearGradient(

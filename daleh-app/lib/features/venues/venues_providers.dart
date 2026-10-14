@@ -3,6 +3,7 @@ import '../../core/session_guard.dart';
 import '../auth/auth_controller.dart';
 import 'models/booking.dart';
 import 'models/venue.dart';
+import 'models/venue_blocked_date.dart';
 import 'models/venue_slot.dart';
 import 'venues_repository.dart';
 
@@ -44,6 +45,11 @@ final minhasReservasProvider = FutureProvider.autoDispose<List<Booking>>((ref) {
 final reservasDaQuadraProvider = FutureProvider.autoDispose.family<List<Booking>, String>((ref, venueId) {
   final repo = ref.read(venuesRepositoryProvider);
   return comSessao(ref, (token) => repo.reservasDaQuadra(venueId, token));
+});
+
+final bloqueiosDaQuadraProvider = FutureProvider.autoDispose.family<List<VenueBlockedDate>, String>((ref, venueId) {
+  final repo = ref.read(venuesRepositoryProvider);
+  return comSessao(ref, (token) => repo.listarBloqueios(venueId, token));
 });
 
 /// Ações que alteram estado no backend. Depois de cada uma, invalidam os
@@ -133,6 +139,16 @@ class VenuesActions {
   Future<void> removerSlot(String venueId, String slotId) async {
     await comSessao(ref, (token) => _repo.removerSlot(venueId, slotId, token));
     ref.invalidate(quadraDetalheProvider(venueId));
+  }
+
+  Future<void> bloquearData(String venueId, {required String data, String? motivo}) async {
+    await comSessao(ref, (token) => _repo.bloquearData(venueId, token, data: data, motivo: motivo));
+    ref.invalidate(bloqueiosDaQuadraProvider(venueId));
+  }
+
+  Future<void> desbloquearData(String venueId, String bloqueioId) async {
+    await comSessao(ref, (token) => _repo.desbloquearData(venueId, bloqueioId, token));
+    ref.invalidate(bloqueiosDaQuadraProvider(venueId));
   }
 
   Future<Booking> reservar(String venueId, String slotId, {required String data}) async {

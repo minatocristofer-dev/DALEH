@@ -7,19 +7,18 @@ import 'package:image_picker/image_picker.dart';
 import '../../theme/daleh_theme.dart';
 import 'editar_foto_controller.dart';
 import 'foto_perfil_layout.dart';
-import 'foto_rosto.dart';
-import 'guia_enquadramento.dart';
+import 'widgets/moldura_foto.dart';
+
 
 /// Monta o card padronizado da foto de perfil a partir de uma foto real
 /// escolhida pelo jogador: foto enquadrada (arrastar + pinçar dentro da área
 /// guia) e uma faixa inferior com nome e posição. Nada é gerado por IA: é só
 /// recorte e composição sobre a foto original. O resultado é achatado num PNG
 /// e enviado pro backend como `avatarUrl`.
-class EditarFotoScreen extends ConsumerStatefulWidget {
-  final String nome;
-  final String? posicao;
+const _moldeAsset = 'assets/molduras/molde_fixo.png';
 
-  const EditarFotoScreen({super.key, required this.nome, this.posicao});
+class EditarFotoScreen extends ConsumerStatefulWidget {
+  const EditarFotoScreen({super.key});
 
   @override
   ConsumerState<EditarFotoScreen> createState() => _EditarFotoScreenState();
@@ -30,9 +29,6 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
   final _picker = ImagePicker();
 
   Uint8List? _foto;
-  RostoNaFoto? _rosto;
-  Size? _dimensoesFoto;
-  bool _precisaCentralizar = false;
   Offset _offset = Offset.zero;
   double _escala = 1.0;
   double _escalaBase = 1.0;
@@ -42,34 +38,12 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
     final arquivo = await _picker.pickImage(source: origem, imageQuality: 90);
     if (arquivo == null) return;
     final bytes = await arquivo.readAsBytes();
-
-    final codec = await ui.instantiateImageCodec(bytes);
-    final quadro = await codec.getNextFrame();
-    final dimensoes = Size(quadro.image.width.toDouble(), quadro.image.height.toDouble());
-    quadro.image.dispose();
-
-    RostoNaFoto? rosto;
-    try {
-      rosto = await detectarRostoNaFoto(arquivo.path, largura: dimensoes.width, altura: dimensoes.height);
-    } catch (_) {
-      rosto = null;
-    }
-    if (!mounted) return;
-
     setState(() {
       _foto = bytes;
       _offset = Offset.zero;
       _escala = 1.0;
       _erro = null;
-      _rosto = rosto;
-      _dimensoesFoto = dimensoes;
-      _precisaCentralizar = rosto != null;
     });
-    if (rosto == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não encontrei um rosto nessa foto. Ajuste manualmente.')),
-      );
-    }
   }
 
   Future<void> _salvar() async {
@@ -100,7 +74,7 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           const Text(
-            'Arraste a foto pra posicionar o rosto no card e pinça pra ajustar o tamanho. O nome e a posição entram automaticamente na faixa de baixo.',
+            'Arraste a foto pra posicionar o rosto na moldura e pinça pra ajustar o tamanho.',
             style: TextStyle(color: DalehColors.muted, fontSize: 13),
           ),
           const SizedBox(height: 16),
@@ -163,7 +137,6 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
           fit: StackFit.expand,
           children: [
             RepaintBoundary(key: _boundaryKey, child: _cardFoto()),
-            IgnorePointer(child: CustomPaint(painter: GuiaEnquadramento())),
           ],
         ),
       ),
@@ -171,33 +144,18 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
   }
 
   Widget _cardFoto() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(DalehRadius.lg),
+    return ClipPath(
+      clipper: const ClipFotoJogador(),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final altura = constraints.maxHeight;
-          final alturaFaixa = altura * fracaoFaixaFotoPerfil;
-          final alturaFoto = altura - alturaFaixa;
+          final alturaFoto = altura;
           final largura = constraints.maxWidth;
-          if (_precisaCentralizar && _rosto != null && _dimensoesFoto != null) {
-            final ajuste = calcularAjusteRosto(
-              rosto: _rosto!,
-              imagemLargura: _dimensoesFoto!.width,
-              imagemAltura: _dimensoesFoto!.height,
-              areaLargura: largura,
-              areaAltura: alturaFoto,
-              alvoCentro: Offset(largura / 2, alturaFoto * 0.4),
-              larguraAlvoRosto: 0.36,
-            );
-            _escala = ajuste.escala;
-            _offset = ajuste.offset;
-            _precisaCentralizar = false;
-          }
           final maxDx = (_escala - 1) * largura / 2;
           final maxDy = (_escala - 1) * alturaFoto / 2;
           final dx = _offset.dx > maxDx ? maxDx : (_offset.dx < -maxDx ? -maxDx : _offset.dx);
           final dy = _offset.dy > maxDy ? maxDy : (_offset.dy < -maxDy ? -maxDy : _offset.dy);
-          return Container(
+          final cartao = Container(
             color: DalehColors.bg,
             child: Column(
               children: [
@@ -214,52 +172,20 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
                           ),
                   ),
                 ),
-                SizedBox(
-                  height: alturaFaixa,
-                  width: double.infinity,
-                  child: _faixaNome(alturaFaixa),
-                ),
               ],
             ),
+          );
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              cartao,
+              IgnorePointer(child: Image.asset(_moldeAsset, fit: BoxFit.fill)),
+            ],
           );
         },
       ),
     );
   }
 
-  Widget _faixaNome(double altura) {
-    final posicao = widget.posicao;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: altura * 0.12),
-      decoration: const BoxDecoration(
-        color: DalehColors.bg,
-        border: Border(top: BorderSide(color: DalehColors.turf, width: 2)),
-      ),
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              widget.nome.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: DalehColors.text),
-            ),
-          ),
-          if (posicao != null && posicao.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                posicao.toUpperCase(),
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 1.5, color: DalehColors.turf),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 }
 
