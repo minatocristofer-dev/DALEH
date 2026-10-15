@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Serviço compartilhado (usado por avatar de jogador e escudo de time) —
@@ -8,6 +8,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // a checagem de dono/capitão de cada endpoint, não o Supabase).
 @Injectable()
 export class SupabaseStorageService {
+  private readonly logger = new Logger(SupabaseStorageService.name);
+
   // Criado sob demanda, não no construtor — se SUPABASE_SERVICE_ROLE_KEY
   // ainda não estiver configurada, isso não pode derrubar o boot da
   // aplicação inteira (mesmo cuidado documentado no projeto pra outras
@@ -38,6 +40,11 @@ export class SupabaseStorageService {
       upsert: true,
     });
     if (error) {
+      // O erro genérico pro cliente nunca muda (não expor detalhe interno
+      // de infra pro app) — mas sem logar a causa real aqui, esse tipo de
+      // falha (bucket errado, política de acesso, projeto pausado, etc.)
+      // fica impossível de diagnosticar a distância.
+      this.logger.error(`Falha ao enviar imagem pro bucket "${bucket}" (${caminho}): ${error.message}`, error);
       throw new InternalServerErrorException('Não foi possível salvar a imagem.');
     }
 
