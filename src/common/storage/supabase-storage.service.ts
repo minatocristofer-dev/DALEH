@@ -16,6 +16,9 @@ export class SupabaseStorageService {
   // integrações opcionais/novas). Só quem tentar enviar uma imagem recebe
   // o erro, e de forma clara.
   private client: SupabaseClient | undefined;
+  // Buckets já confirmados nesta instância do processo — evita checar a
+  // existência do bucket (uma chamada extra à API) em todo upload.
+  private readonly bucketsVerificados = new Set<string>();
 
   private obterClient(): SupabaseClient {
     if (this.client) return this.client;
@@ -31,10 +34,38 @@ export class SupabaseStorageService {
     return this.client;
   }
 
+  // Nenhum dos buckets usados hoje (`avatars`, `crests`) é criado por
+  // migration/seed — só existiam se alguém os criou manualmente no painel
+  // do Supabase. Em vez de depender disso silenciosamente, garante aqui: se
+  // o bucket não existir, cria como público (precisa ser público pra
+  // `getPublicUrl` funcionar, já que o app nunca autentica direto no
+  // Supabase pra baixar a foto).
+  private async garantirBucket(client: SupabaseClient, bucket: string): Promise<void> {
+    if (this.bucketsVerificados.has(bucket)) return;
+
+    const { data: existente, error: erroConsulta } = await client.storage.getBucket(bucket);
+    if (existente) {
+      this.bucketsVerificados.add(bucket);
+      return;
+    }
+
+    const { error: erroCriacao } = await client.storage.createBucket(bucket, { public: true });
+    if (erroCriacao) {
+      this.logger.error(
+        `Bucket "${bucket}" não existe e não foi possível criá-lo automaticamente: ${erroCriacao.message} ` +
+          `(consulta original: ${erroConsulta?.message ?? 'bucket não encontrado'})`,
+        erroCriacao,
+      );
+      throw new InternalServerErrorException('Não foi possível salvar a imagem.');
+    }
+    this.bucketsVerificados.add(bucket);
+  }
+
   // Sobrescreve sempre no mesmo caminho (um arquivo por dono) — trocar a
   // imagem substitui a anterior, nunca acumula lixo no bucket.
   async enviarImagem(bucket: string, caminho: string, arquivo: Buffer, contentType: string): Promise<string> {
     const client = this.obterClient();
+    await this.garantirBucket(client, bucket);
     const { error } = await client.storage.from(bucket).upload(caminho, arquivo, {
       contentType,
       upsert: true,
