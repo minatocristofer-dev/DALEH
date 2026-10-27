@@ -1,48 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/api_client.dart';
 import '../../theme/daleh_theme.dart';
 import '../auth/auth_controller.dart';
 import '../support/fale_conosco_screen.dart';
-import 'perfil_providers.dart';
 
 const _palavraConfirmacao = 'EXCLUIR';
 
-/// Perfil/apelido, Fale Conosco e exclusão de conta — tela separada do
-/// Perfil pra deixar claro que é uma área de ajustes, não parte do fluxo
-/// principal (edição de foto, trocar modo, sair). Parças virou aba própria
-/// na navegação principal (ver `home_shell.dart`).
+/// Fale Conosco e exclusão de conta — tela separada do Perfil pra deixar
+/// claro que é uma área de ajustes, não parte do fluxo principal (edição de
+/// foto, trocar modo, sair). Apelido/pé dominante/posição ficam direto na
+/// tela de Perfil (ver `perfil_screen.dart`); Parças virou aba própria na
+/// navegação principal (ver `home_shell.dart`).
 class ConfiguracoesScreen extends ConsumerWidget {
   const ConfiguracoesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final perfilAsync = ref.watch(meuPerfilProvider);
-
     return Scaffold(
       appBar: AppBar(title: const Text('Configurações')),
       body: ListView(
         padding: const EdgeInsets.all(DalehSpacing.lg),
         children: [
-          const Text(
-            'PERFIL',
-            style: TextStyle(color: DalehColors.muted, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 1),
-          ),
-          const SizedBox(height: DalehSpacing.sm),
-          Card(
-            margin: EdgeInsets.zero,
-            child: ListTile(
-              leading: const Icon(Icons.badge_outlined, color: DalehColors.turf),
-              title: const Text('Apelido', style: TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(
-                perfilAsync.valueOrNull?.nickname ?? 'Nenhum apelido definido',
-                style: const TextStyle(color: DalehColors.muted, fontSize: 12),
-              ),
-              trailing: const Icon(Icons.edit_outlined, size: 18, color: DalehColors.muted),
-              onTap: () => _editarApelido(context, ref, perfilAsync.valueOrNull?.nickname),
-            ),
-          ),
-          const SizedBox(height: DalehSpacing.xl),
           const Text(
             'SUPORTE',
             style: TextStyle(color: DalehColors.muted, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 1),
@@ -80,21 +58,6 @@ class ConfiguracoesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _editarApelido(BuildContext context, WidgetRef ref, String? atual) async {
-    final novoValor = await showDialog<String>(
-      context: context,
-      builder: (ctx) => _DialogoEditarApelido(valorAtual: atual),
-    );
-    if (novoValor == null || !context.mounted) return;
-
-    try {
-      await ref.read(perfilActionsProvider).atualizarApelido(novoValor.trim().isEmpty ? null : novoValor);
-    } on ApiException catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    }
-  }
-
   Future<void> _confirmarExclusao(BuildContext context, WidgetRef ref) async {
     final confirmou = await showDialog<bool>(
       context: context,
@@ -113,45 +76,6 @@ class ConfiguracoesScreen extends ConsumerWidget {
     // tela de login sozinha assim que o estado muda, então só fecha esta
     // tela (se ainda estiver na pilha de navegação).
     Navigator.of(context).popUntil((rota) => rota.isFirst);
-  }
-}
-
-class _DialogoEditarApelido extends StatefulWidget {
-  final String? valorAtual;
-  const _DialogoEditarApelido({this.valorAtual});
-
-  @override
-  State<_DialogoEditarApelido> createState() => _DialogoEditarApelidoState();
-}
-
-class _DialogoEditarApelidoState extends State<_DialogoEditarApelido> {
-  late final _controlador = TextEditingController(text: widget.valorAtual ?? '');
-
-  @override
-  void dispose() {
-    _controlador.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: DalehColors.surface,
-      title: const Text('Apelido'),
-      content: TextField(
-        controller: _controlador,
-        maxLength: 30,
-        autofocus: true,
-        decoration: const InputDecoration(hintText: 'Como seus parças te chamam'),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controlador.text),
-          child: const Text('SALVAR'),
-        ),
-      ],
-    );
   }
 }
 

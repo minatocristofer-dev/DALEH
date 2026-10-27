@@ -20,7 +20,9 @@ describe('AuthService', () => {
       callUp: { count: jest.fn().mockResolvedValue(0) },
       deviceToken: { deleteMany: jest.fn() },
       notification: { deleteMany: jest.fn() },
-      playerProfile: { deleteMany: jest.fn() },
+      playerProfile: { deleteMany: jest.fn(), upsert: jest.fn() },
+      modalidade: { findUnique: jest.fn() },
+      playerModalidade: { findUnique: jest.fn(), update: jest.fn() },
       $transaction: jest.fn(),
     };
     jwt = { sign: jest.fn().mockReturnValue('token-assinado') };
@@ -464,6 +466,58 @@ describe('AuthService', () => {
       await service.atualizarPerfil('user-1', { nickname: '   ' });
 
       expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { nickname: null } });
+    });
+
+    it('apelido null explícito (apagar) continua funcionando mesmo com a guarda nova de "campo ausente"', async () => {
+      prisma.user.update.mockResolvedValue({});
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1', fullName: 'Jogador Teste', nickname: null, playerModalidades: [] });
+      prisma.teamMember.findMany.mockResolvedValue([]);
+
+      await service.atualizarPerfil('user-1', { nickname: null });
+
+      expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { nickname: null } });
+    });
+
+    it('PATCH só com dominantFoot não mexe no apelido (bug encontrado ao implementar: nickname?.trim() || null apagava o apelido existente sempre que vinha ausente do corpo)', async () => {
+      prisma.playerProfile.upsert.mockResolvedValue({});
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1', fullName: 'Jogador Teste', nickname: 'Jota', playerModalidades: [] });
+      prisma.teamMember.findMany.mockResolvedValue([]);
+
+      await service.atualizarPerfil('user-1', { dominantFoot: 'Esquerdo' });
+
+      expect(prisma.user.update).not.toHaveBeenCalled();
+      expect(prisma.playerProfile.upsert).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        create: { userId: 'user-1', dominantFoot: 'Esquerdo' },
+        update: { dominantFoot: 'Esquerdo' },
+      });
+    });
+  });
+
+  describe('atualizarPosicao', () => {
+    it('atualiza a posição de uma modalidade em que o jogador já está cadastrado', async () => {
+      prisma.modalidade.findUnique.mockResolvedValue({ id: 'mod-1', key: 'FUTSAL' });
+      prisma.playerModalidade.findUnique.mockResolvedValue({ id: 'pm-1', userId: 'user-1', modalidadeId: 'mod-1' });
+      prisma.playerModalidade.update.mockResolvedValue({});
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1', fullName: 'Jogador Teste', nickname: null, playerModalidades: [] });
+      prisma.teamMember.findMany.mockResolvedValue([]);
+
+      await service.atualizarPosicao('user-1', { modalidade: 'FUTSAL' as any, posicaoPrincipal: 'Pivô', posicaoSecundaria: 'Ala' });
+
+      expect(prisma.playerModalidade.update).toHaveBeenCalledWith({
+        where: { id: 'pm-1' },
+        data: { posicaoPrincipal: 'Pivô', posicaoSecundaria: 'Ala' },
+      });
+    });
+
+    it('jogador tentando editar posição numa modalidade em que nunca se cadastrou recebe 404, não cria vínculo novo', async () => {
+      prisma.modalidade.findUnique.mockResolvedValue({ id: 'mod-2', key: 'CAMPO11' });
+      prisma.playerModalidade.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.atualizarPosicao('user-1', { modalidade: 'CAMPO11' as any, posicaoPrincipal: 'Atacante' }),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.playerModalidade.update).not.toHaveBeenCalled();
     });
   });
 });

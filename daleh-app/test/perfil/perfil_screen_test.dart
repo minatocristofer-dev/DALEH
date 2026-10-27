@@ -64,17 +64,72 @@ class _ApiClientNuncaUsado implements ApiClient {
       throw UnimplementedError();
 }
 
-MeuPerfil _perfil() {
-  return MeuPerfil.fromJson({
+/// Fake de `ApiClient` que de fato guarda estado — pra cobrir a seção DADOS
+/// (apelido/pé dominante/posição), que agora vive direto no Perfil (ver
+/// `_SecaoDados` em `perfil_screen.dart`).
+class _ApiClientComEstado implements ApiClient {
+  Map<String, dynamic> perfil;
+  Map<String, dynamic>? ultimoCorpoPatch;
+  String? ultimoCaminhoPatch;
+  _ApiClientComEstado(this.perfil);
+
+  @override
+  Future<Map<String, dynamic>> getMapa(String path, {required String token}) async => perfil;
+
+  @override
+  Future<Map<String, dynamic>> patchAutenticado(String path, {required String token, Map<String, dynamic>? corpo}) async {
+    ultimoCaminhoPatch = path;
+    ultimoCorpoPatch = corpo;
+    if (path == '/auth/me') {
+      if (corpo?.containsKey('nickname') ?? false) perfil = {...perfil, 'nickname': corpo!['nickname']};
+      if (corpo?.containsKey('dominantFoot') ?? false) perfil = {...perfil, 'dominantFoot': corpo!['dominantFoot']};
+    } else if (path == '/auth/me/posicao') {
+      final modalidades = (perfil['modalidades'] as List).map((m) {
+        final mapa = m as Map<String, dynamic>;
+        if (mapa['modalidade'] != corpo?['modalidade']) return mapa;
+        return {...mapa, 'posicaoPrincipal': corpo?['posicaoPrincipal'], 'posicaoSecundaria': corpo?['posicaoSecundaria']};
+      }).toList();
+      perfil = {...perfil, 'modalidades': modalidades};
+    }
+    return perfil;
+  }
+
+  @override
+  Future<List<dynamic>> getLista(String path, {required String token}) => throw UnimplementedError();
+  @override
+  Future<dynamic> postAutenticado(String path, {required String token, Map<String, dynamic>? corpo}) =>
+      throw UnimplementedError();
+  @override
+  Future<Map<String, dynamic>> deleteAutenticado(String path, {required String token}) => throw UnimplementedError();
+  @override
+  Future<String> registrar(Map<String, dynamic> dto) => throw UnimplementedError();
+  @override
+  Future<String> login(String email, String senha) => throw UnimplementedError();
+  @override
+  Future<String> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
+  @override
+  Future<Map<String, dynamic>> enviarArquivo(
+    String path, {
+    required String token,
+    required List<int> bytes,
+    required String nomeArquivo,
+    required String contentType,
+  }) =>
+      throw UnimplementedError();
+}
+
+Map<String, dynamic> _perfilJson({String? nickname, String? dominantFoot, List<Map<String, dynamic>>? modalidades}) {
+  return {
     'id': 'user-1',
     'fullName': 'Jogador Teste',
+    'nickname': nickname,
     'email': 'jogador@teste.com',
     'avatarUrl': null,
     'city': null,
     'state': null,
-    'dominantFoot': null,
+    'dominantFoot': dominantFoot,
     'bio': null,
-    'modalidades': [],
+    'modalidades': modalidades ?? [],
     'estatisticas': {
       'jogosDisputados': 0,
       'gols': 0,
@@ -86,7 +141,47 @@ MeuPerfil _perfil() {
     },
     'timesAtuais': [],
     'timesAnteriores': [],
-  });
+  };
+}
+
+MeuPerfil _perfil() => MeuPerfil.fromJson(_perfilJson());
+
+/// Monta a tela com um `ApiClient` falso que de fato guarda estado, pra
+/// cobrir os fluxos de edição (apelido/pé/posição) com sessão real.
+Future<_ApiClientComEstado> _montarComEstado(WidgetTester tester, Map<String, dynamic> perfilInicial) async {
+  // A seção DADOS fica abaixo do Player Card, que já é alto sozinho (ver
+  // mesmo cuidado no teste de compartilhar mais acima) — sem aumentar a
+  // viewport, o `ListView` nem chega a desenhar esses widgets (lazy
+  // layout), e os finders por texto acham "0 widgets" mesmo sem erro.
+  tester.view.physicalSize = const Size(800, 1800);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  final api = _ApiClientComEstado(perfilInicial);
+  final container = ProviderContainer(
+    overrides: [
+      authStorageProvider.overrideWithValue(_AuthStorageDeTeste()),
+      apiClientProvider.overrideWithValue(api),
+      // `meuPerfilProvider` de verdade passa por `comSessao` (token do
+      // `authControllerProvider`), que só fica pronto depois de
+      // `AuthController._carregarSessaoSalva()` (assíncrono) resolver — uma
+      // corrida com o primeiro build da tela. Como esses testes querem
+      // exercitar a leitura/escrita de verdade via `_ApiClientComEstado`
+      // (não um valor fixo), contorna só o lado da sessão aqui, chamando o
+      // repository direto com um token fixo.
+      meuPerfilProvider.overrideWith((ref) => ref.read(perfilRepositoryProvider).meuPerfil('token-de-teste')),
+    ],
+  );
+  addTearDown(container.dispose);
+  container.read(authControllerProvider);
+
+  await tester.pumpWidget(
+    UncontrolledProviderScope(container: container, child: const MaterialApp(home: PerfilScreen())),
+  );
+  await tester.pump();
+  await tester.pumpAndSettle();
+  return api;
 }
 
 /// Monta a tela com uma sessão falsa (token presente, sem rede/Supabase de
@@ -189,5 +284,68 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  group('seção DADOS (apelido/pé dominante/posição — antes escondidos em Configurações)', () {
+    testWidgets('sem modalidade cadastrada, não mostra o campo Posição (não existe o que editar)', (tester) async {
+      await _montarComEstado(tester, _perfilJson());
+
+      expect(find.text('Apelido'), findsOneWidget);
+      expect(find.text('Perna dominante'), findsOneWidget);
+      expect(find.text('Posição'), findsNothing);
+    });
+
+    testWidgets('editar apelido chama PATCH /auth/me e atualiza o texto exibido', (tester) async {
+      final api = await _montarComEstado(tester, _perfilJson());
+
+      expect(find.text('Nenhum apelido definido'), findsOneWidget);
+
+      await tester.tap(find.text('Apelido'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Jota');
+      await tester.tap(find.text('SALVAR'));
+      await tester.pumpAndSettle();
+
+      expect(api.ultimoCaminhoPatch, '/auth/me');
+      expect(api.ultimoCorpoPatch, {'nickname': 'Jota'});
+      expect(find.text('Jota'), findsOneWidget);
+    });
+
+    testWidgets('editar perna dominante chama PATCH /auth/me com dominantFoot', (tester) async {
+      final api = await _montarComEstado(tester, _perfilJson());
+
+      await tester.tap(find.text('Perna dominante'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Esquerdo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('SALVAR'));
+      await tester.pumpAndSettle();
+
+      expect(api.ultimoCaminhoPatch, '/auth/me');
+      expect(api.ultimoCorpoPatch, {'dominantFoot': 'Esquerdo'});
+      expect(find.text('Esquerdo'), findsOneWidget);
+    });
+
+    testWidgets('editar posição chama PATCH /auth/me/posicao com a modalidade certa e atualiza o texto', (tester) async {
+      final api = await _montarComEstado(
+        tester,
+        _perfilJson(modalidades: [
+          {'modalidade': 'FUTSAL', 'label': 'Futsal', 'posicaoPrincipal': 'Fixo', 'posicaoSecundaria': null},
+        ]),
+      );
+
+      expect(find.text('Fixo'), findsOneWidget);
+
+      await tester.tap(find.text('Posição'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('posicao-principal-Pivô')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('SALVAR'));
+      await tester.pumpAndSettle();
+
+      expect(api.ultimoCaminhoPatch, '/auth/me/posicao');
+      expect(api.ultimoCorpoPatch, {'modalidade': 'FUTSAL', 'posicaoPrincipal': 'Pivô', 'posicaoSecundaria': null});
+      expect(find.text('Pivô'), findsOneWidget);
+    });
   });
 }

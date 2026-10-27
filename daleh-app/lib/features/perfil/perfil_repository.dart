@@ -12,9 +12,31 @@ class PerfilRepository {
     return MeuPerfil.fromJson(resp);
   }
 
-  /// Edição do próprio perfil — hoje só o apelido (ver ConfiguracoesScreen).
+  /// Edição do apelido (ver PerfilScreen).
   Future<MeuPerfil> atualizarApelido(String? nickname, String token) async {
     final resp = await _api.patchAutenticado('/auth/me', token: token, corpo: {'nickname': nickname});
+    return MeuPerfil.fromJson(resp);
+  }
+
+  /// Edição do pé dominante (ver PerfilScreen).
+  Future<MeuPerfil> atualizarPeDominante(String peDominante, String token) async {
+    final resp = await _api.patchAutenticado('/auth/me', token: token, corpo: {'dominantFoot': peDominante});
+    return MeuPerfil.fromJson(resp);
+  }
+
+  /// Edição da posição numa modalidade em que o jogador já está cadastrado
+  /// (não cria vínculo com modalidade nova).
+  Future<MeuPerfil> atualizarPosicao(
+    String modalidade,
+    String posicaoPrincipal,
+    String? posicaoSecundaria,
+    String token,
+  ) async {
+    final resp = await _api.patchAutenticado(
+      '/auth/me/posicao',
+      token: token,
+      corpo: {'modalidade': modalidade, 'posicaoPrincipal': posicaoPrincipal, 'posicaoSecundaria': posicaoSecundaria},
+    );
     return MeuPerfil.fromJson(resp);
   }
 

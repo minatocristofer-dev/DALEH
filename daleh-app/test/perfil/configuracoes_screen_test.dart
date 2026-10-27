@@ -27,8 +27,6 @@ class _AuthStorageDeTeste implements AuthStorage {
 
 class _ApiClientDeTeste implements ApiClient {
   String? ultimoCaminhoExcluido;
-  Map<String, dynamic>? ultimoCorpoPatch;
-  String? apelidoAtual;
 
   @override
   Future<Map<String, dynamic>> deleteAutenticado(String path, {required String token}) async {
@@ -40,39 +38,14 @@ class _ApiClientDeTeste implements ApiClient {
   Future<List<dynamic>> getLista(String path, {required String token}) => throw UnimplementedError();
 
   @override
-  Future<Map<String, dynamic>> getMapa(String path, {required String token}) async => {
-        'id': 'user-1',
-        'fullName': 'Jogador Teste',
-        'nickname': apelidoAtual,
-        'email': 'jogador@teste.com',
-        'avatarUrl': null,
-        'city': null,
-        'state': null,
-        'dominantFoot': null,
-        'bio': null,
-        'modalidades': [],
-        'estatisticas': {
-          'jogosDisputados': 0,
-          'gols': 0,
-          'assistencias': 0,
-          'cartoesAmarelos': 0,
-          'cartoesVermelhos': 0,
-          'mvp': 0,
-          'convocacoes': 0,
-        },
-        'timesAtuais': [],
-        'timesAnteriores': [],
-      };
+  Future<Map<String, dynamic>> getMapa(String path, {required String token}) => throw UnimplementedError();
 
   @override
   Future<dynamic> postAutenticado(String path, {required String token, Map<String, dynamic>? corpo}) =>
       throw UnimplementedError();
   @override
-  Future<Map<String, dynamic>> patchAutenticado(String path, {required String token, Map<String, dynamic>? corpo}) async {
-    ultimoCorpoPatch = corpo;
-    apelidoAtual = corpo?['nickname'] as String?;
-    return getMapa(path, token: token);
-  }
+  Future<Map<String, dynamic>> patchAutenticado(String path, {required String token, Map<String, dynamic>? corpo}) =>
+      throw UnimplementedError();
   @override
   Future<String> registrar(Map<String, dynamic> dto) => throw UnimplementedError();
   @override
@@ -170,20 +143,5 @@ void main() {
 
     expect(api.ultimoCaminhoExcluido, isNull);
     expect(find.text('Excluir conta'), findsNothing);
-  });
-
-  testWidgets('editar o apelido chama PATCH /auth/me e atualiza o texto exibido', (tester) async {
-    final api = await montar(tester);
-
-    expect(find.text('Nenhum apelido definido'), findsOneWidget);
-
-    await tester.tap(find.text('Apelido'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Jota');
-    await tester.tap(find.text('SALVAR'));
-    await tester.pumpAndSettle();
-
-    expect(api.ultimoCorpoPatch, {'nickname': 'Jota'});
-    expect(find.text('Jota'), findsOneWidget);
   });
 }

@@ -25,6 +25,18 @@ class PerfilActions {
     await comSessao(ref, (token) => repo.atualizarApelido(nickname, token));
     ref.invalidate(meuPerfilProvider);
   }
+
+  Future<void> atualizarPeDominante(String peDominante) async {
+    final repo = ref.read(perfilRepositoryProvider);
+    await comSessao(ref, (token) => repo.atualizarPeDominante(peDominante, token));
+    ref.invalidate(meuPerfilProvider);
+  }
+
+  Future<void> atualizarPosicao(String modalidade, String posicaoPrincipal, String? posicaoSecundaria) async {
+    final repo = ref.read(perfilRepositoryProvider);
+    await comSessao(ref, (token) => repo.atualizarPosicao(modalidade, posicaoPrincipal, posicaoSecundaria, token));
+    ref.invalidate(meuPerfilProvider);
+  }
 }
 
 final perfilActionsProvider = Provider((ref) => PerfilActions(ref));

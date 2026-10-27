@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { AuthProvider } from '@prisma/client';
+import { AuthProvider, ModalidadeKey } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -275,12 +275,52 @@ export class AuthService {
     return this.montarPerfil(userId);
   }
 
-  // Edição do próprio perfil — hoje só o apelido (opcional, editável a
-  // qualquer momento). O nome real nunca é substituído por isso.
-  async atualizarPerfil(userId: string, dados: { nickname?: string | null }) {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { nickname: dados.nickname?.trim() || null },
+  // Edição do próprio perfil — apelido e pé dominante, cada um só
+  // atualizado quando vem presente no corpo (um PATCH só com dominantFoot
+  // não pode apagar o apelido já salvo, e vice-versa). O nome real nunca é
+  // substituído por isso.
+  async atualizarPerfil(userId: string, dados: { nickname?: string | null; dominantFoot?: string }) {
+    if (dados.nickname !== undefined) {
+      // `nickname` pode chegar como `null` explícito (apagar o apelido,
+      // ver ConfiguracoesScreen) — `?.trim()` cobre isso sem quebrar.
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { nickname: dados.nickname?.trim() || null },
+      });
+    }
+    if (dados.dominantFoot !== undefined) {
+      // `playerProfile` não é criado automaticamente pro usuário — upsert
+      // porque editar o pé dominante pode ser a primeira escrita nessa
+      // tabela pra quem se cadastrou antes dela existir.
+      await this.prisma.playerProfile.upsert({
+        where: { userId },
+        create: { userId, dominantFoot: dados.dominantFoot },
+        update: { dominantFoot: dados.dominantFoot },
+      });
+    }
+    return this.montarPerfil(userId);
+  }
+
+  // Edição da posição numa modalidade em que o jogador JÁ está cadastrado
+  // (ver PlayerModalidade — vínculo criado só no cadastro ou numa fase
+  // futura de "adicionar modalidade"; esse endpoint não cria vínculo novo).
+  async atualizarPosicao(
+    userId: string,
+    dados: { modalidade: ModalidadeKey; posicaoPrincipal: string; posicaoSecundaria?: string },
+  ) {
+    const modalidade = await this.prisma.modalidade.findUnique({ where: { key: dados.modalidade } });
+    if (!modalidade) throw new NotFoundException('Modalidade não encontrada.');
+
+    const vinculo = await this.prisma.playerModalidade.findUnique({
+      where: { userId_modalidadeId: { userId, modalidadeId: modalidade.id } },
+    });
+    if (!vinculo) {
+      throw new NotFoundException('Você não está cadastrado nessa modalidade.');
+    }
+
+    await this.prisma.playerModalidade.update({
+      where: { id: vinculo.id },
+      data: { posicaoPrincipal: dados.posicaoPrincipal, posicaoSecundaria: dados.posicaoSecundaria ?? null },
     });
     return this.montarPerfil(userId);
   }

@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { SocialLoginDto } from './dto/social-login.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdatePositionDto, UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -41,11 +41,19 @@ export class AuthController {
     return this.authService.me(user.id);
   }
 
-  // PATCH /v1/auth/me — edição do próprio perfil (hoje só apelido).
+  // PATCH /v1/auth/me — edição do próprio perfil (apelido, pé dominante).
   @Patch('me')
   @UseGuards(AuthGuard('jwt'))
   atualizarPerfil(@CurrentUser() user: UsuarioAutenticado, @Body() dto: UpdateProfileDto) {
     return this.authService.atualizarPerfil(user.id, dto);
+  }
+
+  // PATCH /v1/auth/me/posicao — edição da posição numa modalidade em que o
+  // jogador já está cadastrado (não cria vínculo novo com uma modalidade).
+  @Patch('me/posicao')
+  @UseGuards(AuthGuard('jwt'))
+  atualizarPosicao(@CurrentUser() user: UsuarioAutenticado, @Body() dto: UpdatePositionDto) {
+    return this.authService.atualizarPosicao(user.id, dto);
   }
 
   // DELETE /v1/auth/me — exclusão da própria conta (exigência da Play
