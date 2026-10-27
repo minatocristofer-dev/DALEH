@@ -19,9 +19,9 @@
       — confirmação visual, sem erro.
 - [ ] Histórico: só existe um fluxo chamado "Histórico" na navegação (não
       existe mais "Jogos"/"Desafios" visível pro Jogador).
-- [ ] Onboarding (primeira vez só): 3 telas na ordem ENCONTRE SEU JOGO →
-      GERENCIE SEU TIME → CONTROLE SUA QUADRA, imagem ocupando a tela
-      inteira, sem texto cortado, Pular/dots/botão legíveis por cima.
+- [ ] Onboarding (primeira vez só): 3 telas na ordem JOGADOR →
+      DIRIGENTE → LOCADOR, imagem ocupando a tela inteira, sem texto
+      cortado, Pular/dots/botão legíveis por cima.
 
 ## DIRIGENTE
 
