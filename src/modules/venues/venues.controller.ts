@@ -88,6 +88,13 @@ export class VenuesController {
     return this.venuesService.reservasDaQuadra(id, user.id);
   }
 
+  // Painel do Locador (calendário + dashboard, QA Round 2 Priority 4).
+  @Get(':id/dashboard')
+  @UseGuards(AuthGuard('jwt'))
+  dashboard(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado) {
+    return this.venuesService.dashboard(id, user.id);
+  }
+
   @Post(':id/slots/:slotId/bookings')
   @UseGuards(AuthGuard('jwt'))
   reservar(

@@ -5,6 +5,7 @@ import '../../core/session_guard.dart';
 import '../auth/auth_controller.dart';
 import 'models/call_up.dart';
 import 'models/team.dart';
+import 'models/team_dashboard.dart';
 import 'models/team_member.dart';
 import 'teams_repository.dart';
 
@@ -18,6 +19,11 @@ final meusTimesProvider = FutureProvider.autoDispose<List<Team>>((ref) {
 final teamDetailProvider = FutureProvider.autoDispose.family<TeamDetail, String>((ref, teamId) {
   final repo = ref.read(teamsRepositoryProvider);
   return comSessao(ref, (token) => repo.obterTime(teamId, token));
+});
+
+final teamDashboardProvider = FutureProvider.autoDispose.family<TeamDashboard, String>((ref, teamId) {
+  final repo = ref.read(teamsRepositoryProvider);
+  return comSessao(ref, (token) => repo.dashboard(teamId, token));
 });
 
 final convocacoesDoTimeProvider = FutureProvider.autoDispose.family<List<CallUp>, String>((ref, teamId) {

@@ -477,3 +477,83 @@ describe('TeamsService — obterTime (Fase visual, estatísticas reais por jogad
     );
   });
 });
+
+describe('TeamsService — dashboard (QA Round 2, Priority 3)', () => {
+  let prisma: any;
+  let service: TeamsService;
+
+  beforeEach(() => {
+    prisma = {
+      team: { findUnique: jest.fn().mockResolvedValue({ id: 'time-1', name: 'DALEH FC' }) },
+      match: { findFirst: jest.fn().mockResolvedValue(null) },
+      teamMember: { findFirst: jest.fn().mockResolvedValue(null), count: jest.fn().mockResolvedValue(0) },
+      matchAttendance: { count: jest.fn().mockResolvedValue(0) },
+      matchEvent: { groupBy: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
+      user: { findUnique: jest.fn() },
+    };
+    service = new TeamsService(
+      prisma as unknown as PrismaService,
+      {} as unknown as NotificationsService,
+      {} as unknown as TeamAuthorizationService,
+    );
+  });
+
+  it('lança 404 quando o time não existe', async () => {
+    prisma.team.findUnique.mockResolvedValue(null);
+
+    await expect(service.dashboard('time-inexistente')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('sem nenhum jogo ou gol ainda, devolve tudo nulo/zerado — nunca inventa dado', async () => {
+    const dashboard = await service.dashboard('time-1');
+
+    expect(dashboard).toMatchObject({
+      proximoJogo: null,
+      ultimoJogo: null,
+      ultimaContratacao: null,
+      artilheiro: null,
+      totalJogadores: 0,
+      jogosRealizados: 0,
+      golsMarcados: 0,
+    });
+  });
+
+  it('monta o artilheiro real a partir do MatchEvent agrupado por jogador', async () => {
+    prisma.matchEvent.groupBy.mockResolvedValue([{ userId: 'user-joao', _count: { _all: 7 } }]);
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-joao',
+      fullName: 'João Silva',
+      nickname: 'Jota',
+      avatarUrl: null,
+    });
+
+    const dashboard = await service.dashboard('time-1');
+
+    expect(dashboard.artilheiro).toEqual({
+      userId: 'user-joao',
+      fullName: 'João Silva',
+      nickname: 'Jota',
+      avatarUrl: null,
+      gols: 7,
+    });
+  });
+
+  it('última contratação vem do TeamMember mais recente, com nome/apelido/número/data', async () => {
+    prisma.teamMember.findFirst.mockResolvedValue({
+      numeroCamisa: 10,
+      criadoEm: new Date('2026-10-01'),
+      user: { id: 'user-novo', fullName: 'Jogador Novo', nickname: null, avatarUrl: null },
+    });
+
+    const dashboard = await service.dashboard('time-1');
+
+    expect(dashboard.ultimaContratacao).toEqual({
+      id: 'user-novo',
+      fullName: 'Jogador Novo',
+      nickname: null,
+      avatarUrl: null,
+      numeroCamisa: 10,
+      desde: new Date('2026-10-01'),
+    });
+  });
+});

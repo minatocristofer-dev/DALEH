@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/api_client.dart';
+import '../../shared/widgets/daleh_wordmark.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../theme/daleh_theme.dart';
@@ -203,7 +204,7 @@ class _Hero extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('DALEH', style: TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
+              const DalehWordmark(),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

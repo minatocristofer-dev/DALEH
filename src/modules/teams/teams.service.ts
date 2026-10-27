@@ -146,6 +146,99 @@ export class TeamsService {
     }));
   }
 
+  // Dashboard do Dirigente (Priority 3 do QA Round 2) — só agregação de
+  // dados que já existem (Match, MatchEvent, TeamMember), nada novo
+  // guardado. Qualquer usuário que vê o time pode ver o dashboard (mesma
+  // visibilidade de `obterTime`) — não é uma ação de escrita, não precisa
+  // de `exigirCapitaoOuDono`.
+  async dashboard(teamId: string) {
+    const time = await this.prisma.team.findUnique({ where: { id: teamId } });
+    if (!time) throw new NotFoundException('Time não encontrado.');
+
+    const timeJogouNaPartida = { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] };
+    const agora = new Date();
+
+    const [proximoJogo, ultimoJogo, ultimaContratacao, totalJogadores, jogosRealizados, golsPorJogador] =
+      await Promise.all([
+        this.prisma.match.findFirst({
+          where: { ...timeJogouNaPartida, status: { not: 'cancelled' }, scheduledAt: { gte: agora } },
+          orderBy: { scheduledAt: 'asc' },
+          include: { homeTeam: true, awayTeam: true, venue: true },
+        }),
+        this.prisma.match.findFirst({
+          where: { ...timeJogouNaPartida, status: { not: 'cancelled' }, scheduledAt: { lt: agora } },
+          orderBy: { scheduledAt: 'desc' },
+          include: { homeTeam: true, awayTeam: true, venue: true },
+        }),
+        this.prisma.teamMember.findFirst({
+          where: { teamId, status: 'active' },
+          orderBy: { criadoEm: 'desc' },
+          include: { user: { select: { id: true, fullName: true, nickname: true, avatarUrl: true } } },
+        }),
+        this.prisma.teamMember.count({ where: { teamId, status: 'active' } }),
+        this.prisma.matchAttendance.count({
+          where: { status: 'confirmed', match: { ...timeJogouNaPartida, scheduledAt: { lte: agora } } },
+        }),
+        this.prisma.matchEvent.groupBy({
+          by: ['userId'],
+          where: { teamId, eventType: 'goal' },
+          _count: { _all: true },
+          orderBy: { _count: { userId: 'desc' } },
+          take: 1,
+        }),
+      ]);
+
+    let artilheiro: { userId: string; fullName: string; nickname: string | null; avatarUrl: string | null; gols: number } | null =
+      null;
+    if (golsPorJogador.length > 0) {
+      const jogador = await this.prisma.user.findUnique({
+        where: { id: golsPorJogador[0].userId },
+        select: { id: true, fullName: true, nickname: true, avatarUrl: true },
+      });
+      if (jogador) {
+        artilheiro = { userId: jogador.id, fullName: jogador.fullName, nickname: jogador.nickname, avatarUrl: jogador.avatarUrl, gols: golsPorJogador[0]._count._all };
+      }
+    }
+
+    const golsMarcados = await this.prisma.matchEvent.count({ where: { teamId, eventType: 'goal' } });
+
+    const resumoJogo = async (jogo: typeof proximoJogo) => {
+      if (!jogo) return null;
+      const [golsCasa, golsFora] = await Promise.all([
+        jogo.homeTeamId ? this.prisma.matchEvent.count({ where: { matchId: jogo.id, teamId: jogo.homeTeamId, eventType: 'goal' } }) : 0,
+        jogo.awayTeamId ? this.prisma.matchEvent.count({ where: { matchId: jogo.id, teamId: jogo.awayTeamId, eventType: 'goal' } }) : 0,
+      ]);
+      return {
+        id: jogo.id,
+        scheduledAt: jogo.scheduledAt,
+        status: jogo.status,
+        venueName: jogo.venue?.name ?? null,
+        homeTeam: jogo.homeTeam ? { id: jogo.homeTeam.id, name: jogo.homeTeam.name, crestUrl: jogo.homeTeam.crestUrl } : null,
+        awayTeam: jogo.awayTeam ? { id: jogo.awayTeam.id, name: jogo.awayTeam.name, crestUrl: jogo.awayTeam.crestUrl } : null,
+        placar: jogo.status === 'finished' || jogo.scheduledAt < agora ? { casa: golsCasa, fora: golsFora } : null,
+      };
+    };
+
+    return {
+      proximoJogo: await resumoJogo(proximoJogo),
+      ultimoJogo: await resumoJogo(ultimoJogo),
+      ultimaContratacao: ultimaContratacao
+        ? {
+            id: ultimaContratacao.user.id,
+            fullName: ultimaContratacao.user.fullName,
+            nickname: ultimaContratacao.user.nickname,
+            avatarUrl: ultimaContratacao.user.avatarUrl,
+            numeroCamisa: ultimaContratacao.numeroCamisa,
+            desde: ultimaContratacao.criadoEm,
+          }
+        : null,
+      artilheiro,
+      totalJogadores,
+      jogosRealizados,
+      golsMarcados,
+    };
+  }
+
   async adicionarMembro(teamId: string, userId: string, dto: AddMemberDto) {
     await this.teamAuth.exigirCapitaoOuDono(teamId, userId);
 

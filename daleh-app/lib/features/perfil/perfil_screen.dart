@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../auth/auth_controller.dart';
+import 'configuracoes_screen.dart';
 import 'editar_foto_screen.dart';
 import 'perfil_providers.dart';
 import 'widgets/player_card_com_compartilhar.dart';
@@ -31,6 +32,11 @@ class PerfilScreen extends ConsumerWidget {
             tooltip: 'Trocar modo',
             icon: const Icon(Icons.swap_horiz),
             onPressed: () => ref.read(authControllerProvider.notifier).abrirSeletorDeModo(),
+          ),
+          IconButton(
+            tooltip: 'Configurações',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConfiguracoesScreen())),
           ),
           IconButton(
             tooltip: 'Sair',

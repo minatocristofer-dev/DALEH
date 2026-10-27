@@ -60,7 +60,9 @@ void main() {
       final destino = resolverDestinoDaNotificacao('booking_created', {'bookingId': 'b1', 'venueId': 'v1'});
       expect(destino, isA<MinhaQuadraDetailScreen>());
       expect((destino as MinhaQuadraDetailScreen).venueId, 'v1');
-      expect(destino.abaInicial, 1);
+      // Aba 2 = RESERVAS (0=Painel, 1=Horários, 2=Reservas, 3=Bloqueios) —
+      // o Painel novo (QA Round 2) entrou como primeira aba.
+      expect(destino.abaInicial, 2);
     });
 
     test('booking_cancelled_by_renter com venueId (payload novo, pós-correção) leva pra aba Reservas da quadra certa', () {

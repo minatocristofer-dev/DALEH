@@ -228,6 +228,7 @@ export class AuthService {
     return {
       id: user.id,
       fullName: user.fullName,
+      nickname: user.nickname,
       email: user.email,
       avatarUrl: user.avatarUrl,
       city: user.city,
@@ -274,11 +275,60 @@ export class AuthService {
     return this.montarPerfil(userId);
   }
 
+  // Edição do próprio perfil — hoje só o apelido (opcional, editável a
+  // qualquer momento). O nome real nunca é substituído por isso.
+  async atualizarPerfil(userId: string, dados: { nickname?: string | null }) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { nickname: dados.nickname?.trim() || null },
+    });
+    return this.montarPerfil(userId);
+  }
+
   // Perfil público (Fase 7) — qualquer usuário autenticado pode ver o de
   // qualquer outro (sem exigir time/jogo em comum, por decisão explícita do
   // prompt desta fase). Mesmo formato de `me()`, só sem o e-mail.
   async perfilPublico(userId: string) {
     const { email: _email, ...perfilPublico } = await this.montarPerfil(userId);
     return perfilPublico;
+  }
+
+  // Exclusão de conta (exigência da Play Store/Data Safety). NÃO é um
+  // DELETE físico: várias tabelas de histórico esportivo compartilhado
+  // (MatchEvent, MatchAttendance, CallUp, TeamCharge, Team.ownerId,
+  // Venue.ownerId etc.) referenciam `User.id` sem CASCADE — um delete real
+  // falharia com violação de FK pra qualquer jogador com alguma atividade,
+  // e mesmo que não falhasse, apagaria estatísticas/súmulas que pertencem
+  // à história de OUTROS jogadores/times, não só do dono da conta. Em vez
+  // disso: anonimiza os dados pessoais (login fica impossível — sem
+  // e-mail/senha — e o nome vira genérico) mas mantém a linha do usuário
+  // intacta, preservando a integridade referencial de tudo que outras
+  // pessoas compartilham com ele. Tabelas 100% pessoais (sem ninguém mais
+  // depender delas) são apagadas de verdade.
+  async excluirPropriaConta(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuário não encontrado.');
+
+    await this.prisma.$transaction([
+      this.prisma.deviceToken.deleteMany({ where: { userId } }),
+      this.prisma.notification.deleteMany({ where: { userId } }),
+      this.prisma.playerProfile.deleteMany({ where: { userId } }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          email: null,
+          phone: null,
+          passwordHash: null,
+          fullName: 'Usuário removido',
+          avatarUrl: null,
+          city: null,
+          state: null,
+          birthDate: null,
+          celebrationGifKey: null,
+          isPro: false,
+          proExpiresAt: null,
+        },
+      }),
+    ]);
   }
 }

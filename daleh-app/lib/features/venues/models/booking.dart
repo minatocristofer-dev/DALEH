@@ -18,6 +18,8 @@ class Booking {
   final String? venueAddress;
   final String? bookedByUserFullName;
   final String? bookedByUserAvatarUrl;
+  final bool isFixed;
+  final String? fixedTeamName;
 
   Booking({
     required this.id,
@@ -32,6 +34,8 @@ class Booking {
     this.venueAddress,
     this.bookedByUserFullName,
     this.bookedByUserAvatarUrl,
+    this.isFixed = false,
+    this.fixedTeamName,
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
@@ -51,6 +55,8 @@ class Booking {
       venueAddress: venue?['address'] as String?,
       bookedByUserFullName: bookedByUser?['fullName'] as String?,
       bookedByUserAvatarUrl: bookedByUser?['avatarUrl'] as String?,
+      isFixed: json['isFixed'] as bool? ?? false,
+      fixedTeamName: json['fixedTeamName'] as String?,
     );
   }
 

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../shared/compartilhar_imagem.dart';
 import '../../shared/widgets/crest_avatar.dart';
+import '../../shared/widgets/daleh_wordmark.dart';
+import '../../shared/widgets/primary_button.dart';
 import '../../theme/daleh_theme.dart';
 import 'models/match.dart';
 import 'models/match_event.dart';
@@ -60,7 +63,7 @@ class PlacarHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Text('DALEH', style: TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic, letterSpacing: 1)),
+          const DalehWordmark(),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -246,5 +249,175 @@ class EventoTile extends StatelessWidget {
       default:
         return (DalehColors.muted, tipo.toUpperCase(), const Icon(Icons.adjust, size: 16, color: DalehColors.muted));
     }
+  }
+}
+
+/// Card de compartilhamento da súmula (QA Round 3, item 3) — mesmo cabeçalho
+/// da aba Súmula (`PlacarHeader`) + só os eventos que cabem com legibilidade
+/// (últimos gols em ordem cronológica, cartões resumidos em contagem, MVP),
+/// nunca a timeline inteira (ia poluir a imagem).
+class SumulaShareCard extends StatelessWidget {
+  final Match partida;
+  final List<EventoComPlacar> eventos;
+  const SumulaShareCard({super.key, required this.partida, required this.eventos});
+
+  @override
+  Widget build(BuildContext context) {
+    final golsCronologicos = eventos.where((e) => e.evento.eventType == 'goal').toList().reversed.toList();
+    final amarelos = eventos.where((e) => e.evento.eventType == 'yellow').length;
+    final vermelhos = eventos.where((e) => e.evento.eventType == 'red').length;
+    final mvp = partida.mvpEvento;
+    final golsExibidos = golsCronologicos.length > 8 ? golsCronologicos.sublist(golsCronologicos.length - 8) : golsCronologicos;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: DalehColors.bg, borderRadius: BorderRadius.circular(DalehRadius.lg)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PlacarHeader(partida: partida),
+          if (golsExibidos.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text('GOLS', style: TextStyle(color: DalehColors.muted, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+            const SizedBox(height: 8),
+            for (final g in golsExibidos)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 30,
+                      child: Text(g.evento.minute != null ? "${g.evento.minute}'" : '—',
+                          style: const TextStyle(color: DalehColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w800)),
+                    ),
+                    const Icon(Icons.sports_soccer, size: 14, color: DalehColors.turf),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(g.evento.userFullName ?? 'Jogador',
+                          maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                    ),
+                    if (g.placarNoMomento != null)
+                      Text(g.placarNoMomento!, style: const TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 12)),
+                  ],
+                ),
+              ),
+            if (golsCronologicos.length > golsExibidos.length)
+              Text('+${golsCronologicos.length - golsExibidos.length} gol(s) anterior(es)', style: const TextStyle(color: DalehColors.muted, fontSize: 11)),
+          ],
+          if (amarelos > 0 || vermelhos > 0) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (amarelos > 0) _chipCartao(DalehColors.amber, '$amarelos amarelo(s)'),
+                if (amarelos > 0 && vermelhos > 0) const SizedBox(width: 10),
+                if (vermelhos > 0) _chipCartao(DalehColors.danger, '$vermelhos vermelho(s)'),
+              ],
+            ),
+          ],
+          if (mvp != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: DalehColors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: DalehColors.amber.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.star, color: DalehColors.amber, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('MVP: ${mvp.userFullName ?? 'Jogador'}',
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _chipCartao(Color cor, String texto) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: cor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(DalehRadius.pill), border: Border.all(color: cor)),
+        child: Text(texto, style: TextStyle(color: cor, fontSize: 11, fontWeight: FontWeight.w800)),
+      );
+}
+
+/// Botão "COMPARTILHAR SÚMULA" — abre o card numa folha modal em vez de
+/// deixá-lo sempre visível na tela: a aba Súmula já mostra os mesmos gols e
+/// nomes na timeline normal, então um card inline duplicaria esse texto e
+/// quebraria qualquer busca por nome de jogador (inclusive em teste).
+class SumulaShareButton extends StatelessWidget {
+  final Match partida;
+  final List<EventoComPlacar> eventos;
+  const SumulaShareButton({super.key, required this.partida, required this.eventos});
+
+  @override
+  Widget build(BuildContext context) {
+    return PrimaryButton(
+      label: 'COMPARTILHAR SÚMULA',
+      icon: Icons.share_outlined,
+      onPressed: () => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: DalehColors.surface,
+        builder: (ctx) => Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: _SumulaSharePreview(partida: partida, eventos: eventos),
+        ),
+      ),
+    );
+  }
+}
+
+class _SumulaSharePreview extends StatefulWidget {
+  final Match partida;
+  final List<EventoComPlacar> eventos;
+  const _SumulaSharePreview({required this.partida, required this.eventos});
+
+  @override
+  State<_SumulaSharePreview> createState() => _SumulaSharePreviewState();
+}
+
+class _SumulaSharePreviewState extends State<_SumulaSharePreview> {
+  final _cardKey = GlobalKey();
+  bool _compartilhando = false;
+
+  Future<void> _compartilhar() async {
+    setState(() => _compartilhando = true);
+    final sucesso = await compartilharImagem(
+      _cardKey,
+      texto: 'Súmula de ${widget.partida.homeTeamName ?? 'Time A'} × ${widget.partida.awayTeamName ?? 'Time B'} no DALEH.',
+      prefixoArquivo: 'daleh_sumula',
+    );
+    if (mounted) {
+      setState(() => _compartilhando = false);
+      if (!sucesso) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível compartilhar agora. Tenta de novo.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        RepaintBoundary(key: _cardKey, child: SumulaShareCard(partida: widget.partida, eventos: widget.eventos)),
+        const SizedBox(height: 14),
+        PrimaryButton(
+          label: 'COMPARTILHAR SÚMULA',
+          icon: Icons.share_outlined,
+          carregando: _compartilhando,
+          onPressed: _compartilhar,
+        ),
+      ],
+    );
   }
 }

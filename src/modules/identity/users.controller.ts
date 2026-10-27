@@ -1,7 +1,10 @@
 import {
   BadRequestException,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   UploadedFile,
@@ -12,6 +15,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser, UsuarioAutenticado } from '../../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
+import { FollowsService } from './follows.service';
 import { SupabaseStorageService } from '../../common/storage/supabase-storage.service';
 
 const TIPOS_ACEITOS = ['image/png', 'image/jpeg'];
@@ -28,7 +32,31 @@ export class UsersController {
   constructor(
     private authService: AuthService,
     private storage: SupabaseStorageService,
+    private followsService: FollowsService,
   ) {}
+
+  // "Parças" — precisam vir antes de `:id` pra não colidir com o segmento
+  // literal "me" (mesmo cuidado que `me/avatar`, abaixo).
+  @Get('me/following')
+  seguindo(@CurrentUser() user: UsuarioAutenticado) {
+    return this.followsService.seguindo(user.id);
+  }
+
+  @Get('me/followers')
+  seguidores(@CurrentUser() user: UsuarioAutenticado) {
+    return this.followsService.seguidores(user.id);
+  }
+
+  @Post(':id/follow')
+  seguir(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado) {
+    return this.followsService.seguir(user.id, id);
+  }
+
+  @Delete(':id/follow')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deixarDeSeguir(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado) {
+    return this.followsService.deixarDeSeguir(user.id, id);
+  }
 
   @Get(':id')
   perfilPublico(@Param('id') id: string) {

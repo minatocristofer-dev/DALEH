@@ -47,6 +47,13 @@ export class TeamsController {
     return this.teamsService.obterTime(id);
   }
 
+  // Dashboard do Dirigente — próximo/último jogo, última contratação,
+  // artilheiro e contadores, tudo agregado de dados que já existem.
+  @Get(':id/dashboard')
+  dashboard(@Param('id') id: string) {
+    return this.teamsService.dashboard(id);
+  }
+
   // Só dono/capitão/vice-capitão pode trocar (checado dentro do service) —
   // o backend não faz nenhuma composição de imagem, só guarda o resultado
   // que o app mandar.

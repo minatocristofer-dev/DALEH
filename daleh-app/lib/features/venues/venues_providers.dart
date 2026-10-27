@@ -4,6 +4,7 @@ import '../auth/auth_controller.dart';
 import 'models/booking.dart';
 import 'models/venue.dart';
 import 'models/venue_blocked_date.dart';
+import 'models/venue_dashboard.dart';
 import 'models/venue_slot.dart';
 import 'venues_repository.dart';
 
@@ -27,6 +28,11 @@ final minhasQuadrasProvider = FutureProvider.autoDispose<List<Venue>>((ref) {
 final quadraDetalheProvider = FutureProvider.autoDispose.family<Venue, String>((ref, venueId) {
   final repo = ref.read(venuesRepositoryProvider);
   return comSessao(ref, (token) => repo.obterQuadra(venueId, token));
+});
+
+final venueDashboardProvider = FutureProvider.autoDispose.family<VenueDashboard, String>((ref, venueId) {
+  final repo = ref.read(venuesRepositoryProvider);
+  return comSessao(ref, (token) => repo.dashboard(venueId, token));
 });
 
 typedef DisponibilidadeQuery = ({String venueId, String data});
@@ -171,6 +177,22 @@ class VenuesActions {
   Future<void> recusarReserva(String venueId, String bookingId) async {
     await comSessao(ref, (token) => _repo.atualizarStatusReserva(bookingId, token, status: 'cancelled'));
     ref.invalidate(reservasDaQuadraProvider(venueId));
+  }
+
+  /// Marcar/remover horário fixo (QA Round 3, item 2) — `dataAgenda` é a
+  /// data (`yyyy-MM-dd`) da agenda aberta no momento, pra invalidar a
+  /// disponibilidade e o slot mudar de estado na hora.
+  Future<void> marcarComoFixo(
+    String venueId,
+    String bookingId, {
+    required bool isFixed,
+    String? fixedTeamName,
+    required String dataAgenda,
+  }) async {
+    await comSessao(ref, (token) => _repo.marcarComoFixo(bookingId, token, isFixed: isFixed, fixedTeamName: fixedTeamName));
+    ref.invalidate(disponibilidadeProvider((venueId: venueId, data: dataAgenda)));
+    ref.invalidate(reservasDaQuadraProvider(venueId));
+    ref.invalidate(venueDashboardProvider(venueId));
   }
 }
 

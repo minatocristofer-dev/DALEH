@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser, UsuarioAutenticado } from '../../common/decorators/current-user.decorator';
 import { VenuesService } from './venues.service';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
+import { UpdateBookingFixedDto } from './dto/update-booking-fixed.dto';
 
 @Controller('bookings')
 @UseGuards(AuthGuard('jwt'))
@@ -22,5 +23,11 @@ export class BookingsController {
   @Delete(':id')
   cancelar(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado) {
     return this.venuesService.cancelarMinhaReserva(id, user.id);
+  }
+
+  // Horário fixo (recorrente) — só o dono da quadra marca/desmarca.
+  @Patch(':id/fixed')
+  marcarComoFixo(@Param('id') id: string, @CurrentUser() user: UsuarioAutenticado, @Body() dto: UpdateBookingFixedDto) {
+    return this.venuesService.marcarComoFixo(id, user.id, dto.isFixed, dto.fixedTeamName);
   }
 }

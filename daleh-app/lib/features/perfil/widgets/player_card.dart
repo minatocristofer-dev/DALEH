@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../shared/tempo_no_time.dart';
 import '../../../shared/widgets/crest_avatar.dart';
+import '../../../shared/widgets/daleh_wordmark.dart';
 import '../../../theme/daleh_theme.dart';
 import '../conquistas.dart';
 import '../foto_perfil_layout.dart';
@@ -60,16 +61,7 @@ class PlayerCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text(
-                                'DALEH',
-                                style: TextStyle(
-                                  color: DalehColors.turf,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 19,
-                                  fontStyle: FontStyle.italic,
-                                  letterSpacing: 1,
-                                ),
-                              ),
+                              const DalehWordmark(),
                               const SizedBox(height: 22),
                               Text(
                                 primeiraLinhaNome.isNotEmpty ? primeiraLinhaNome : ultimaLinhaNome,
@@ -88,6 +80,14 @@ class PlayerCard extends StatelessWidget {
                                     fontWeight: FontWeight.w900,
                                     fontSize: 22,
                                     height: 1.05,
+                                  ),
+                                ),
+                              if (perfil.nickname != null && perfil.nickname!.trim().isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    '"${perfil.nickname}"',
+                                    style: const TextStyle(color: DalehColors.muted, fontSize: 12, fontWeight: FontWeight.w600),
                                   ),
                                 ),
                             ],

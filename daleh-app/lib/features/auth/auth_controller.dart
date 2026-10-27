@@ -154,6 +154,25 @@ class AuthController extends StateNotifier<AuthState> {
     await supabase.auth.signOut();
     state = AuthState(verificandoSessao: false, onboardingVisto: state.onboardingVisto);
   }
+
+  /// Exclusão da própria conta (`DELETE /auth/me`) — o backend anonimiza os
+  /// dados pessoais em vez de apagar fisicamente (preserva histórico
+  /// esportivo compartilhado com outros jogadores/times). Depois de
+  /// confirmado no servidor, desloga localmente igual a `sair()`. Devolve
+  /// a mensagem de erro em caso de falha, ou null em caso de sucesso.
+  Future<String?> excluirConta() async {
+    final token = state.token;
+    if (token == null) return null;
+    try {
+      await _api.deleteAutenticado('/auth/me', token: token);
+    } on ApiException catch (e) {
+      return e.message;
+    }
+    await _storage.limpar();
+    await supabase.auth.signOut();
+    state = AuthState(verificandoSessao: false, onboardingVisto: state.onboardingVisto);
+    return null;
+  }
 }
 
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>((ref) {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
+import '../../shared/compartilhar_imagem.dart';
 import '../../shared/widgets/crest_avatar.dart';
+import '../../shared/widgets/daleh_wordmark.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
@@ -298,6 +300,12 @@ class _ParticipantesTab extends StatelessWidget {
           const SizedBox(height: 8),
           ...espera.map((a) => _linhaJogador(context, a.userId, a.userFullName, a.userAvatarUrl)),
         ],
+        if (confirmados.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          const Divider(color: DalehColors.line),
+          const SizedBox(height: 16),
+          EscalacaoShareButton(partida: partida, confirmados: confirmados),
+        ],
       ],
     );
   }
@@ -355,6 +363,12 @@ class _EscalacaoPorTime extends StatelessWidget {
           Text('LISTA DE ESPERA (${espera.length})', style: const TextStyle(color: DalehColors.muted, fontSize: 12, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
           ...espera.map((a) => _ParticipantesTab._linhaJogador(context, a.userId, a.userFullName, a.userAvatarUrl)),
+        ],
+        if (confirmados.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          const Divider(color: DalehColors.line),
+          const SizedBox(height: 16),
+          EscalacaoShareButton(partida: partida, confirmados: confirmados),
         ],
       ],
     );
@@ -447,6 +461,191 @@ class _EscalacaoPorTime extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+String _rotuloGrupoEscalacao(String linha) {
+  switch (linha) {
+    case 'Goleiro':
+      return 'GOLEIROS';
+    case 'Defesa':
+      return 'DEFENSORES';
+    case 'Meio':
+      return 'MEIAS';
+    case 'Ataque':
+      return 'ATACANTES';
+    default:
+      return 'JOGADORES';
+  }
+}
+
+/// Card de compartilhamento da escalação (QA Round 3, item 4): confronto (ou
+/// modalidade, pra pelada avulsa), data/hora/local e os confirmados
+/// agrupados por posição — mesma lógica de agrupamento da aba Participantes,
+/// sem os toques de navegação (não faz sentido numa imagem estática).
+class EscalacaoShareCard extends StatelessWidget {
+  final Match partida;
+  final List<MatchAttendance> confirmados;
+  const EscalacaoShareCard({super.key, required this.partida, required this.confirmados});
+
+  @override
+  Widget build(BuildContext context) {
+    final doHome = partida.temTimes ? confirmados.where((a) => a.teamId == partida.homeTeamId).toList() : const <MatchAttendance>[];
+    final doAway = partida.temTimes ? confirmados.where((a) => a.teamId == partida.awayTeamId).toList() : const <MatchAttendance>[];
+    final semTime = partida.temTimes ? confirmados.where((a) => a.teamId == null).toList() : confirmados;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: DalehColors.bg,
+        borderRadius: BorderRadius.circular(DalehRadius.lg),
+        border: Border.all(color: DalehColors.turf),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Center(child: DalehWordmark()),
+          const SizedBox(height: 10),
+          Center(
+            child: Text(
+              partida.temTimes ? '${partida.homeTeamName ?? 'Time A'} × ${partida.awayTeamName ?? 'Time B'}' : (partida.modalidadeLabel ?? 'Escalação'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              '${formatarDataHora(partida.scheduledAt)}${partida.venueName != null ? ' • ${partida.venueName}' : ''}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: DalehColors.muted, fontSize: 12),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (partida.temTimes) ...[
+            _blocoEscalacao(partida.homeTeamName ?? 'Time A', doHome),
+            const SizedBox(height: 14),
+            _blocoEscalacao(partida.awayTeamName ?? 'Time B', doAway),
+            if (semTime.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              _blocoEscalacao('OUTROS CONFIRMADOS', semTime),
+            ],
+          ] else
+            _blocoEscalacao('CONFIRMADOS', semTime),
+        ],
+      ),
+    );
+  }
+
+  Widget _blocoEscalacao(String titulo, List<MatchAttendance> jogadores) {
+    final porLinha = <String, List<MatchAttendance>>{for (final l in _linhasDaEscalacao) l: []};
+    for (final j in jogadores) {
+      porLinha[_linhaDaPosicao(j.posicaoPrincipal)]!.add(j);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(titulo.toUpperCase(), style: const TextStyle(color: DalehColors.turf, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.4)),
+        const SizedBox(height: 8),
+        if (jogadores.isEmpty)
+          const Text('Ninguém confirmado.', style: TextStyle(color: DalehColors.muted, fontSize: 12))
+        else
+          for (final linha in _linhasDaEscalacao)
+            if (porLinha[linha]!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_rotuloGrupoEscalacao(linha), style: const TextStyle(color: DalehColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Wrap(spacing: 10, runSpacing: 6, children: porLinha[linha]!.map(_fichaJogador).toList()),
+                  ],
+                ),
+              ),
+      ],
+    );
+  }
+
+  Widget _fichaJogador(MatchAttendance a) {
+    return SizedBox(
+      width: 64,
+      child: Column(
+        children: [
+          CrestAvatar(url: a.userAvatarUrl, nome: a.userFullName ?? '?', tamanho: 36),
+          const SizedBox(height: 4),
+          Text(a.userFullName ?? 'Jogador',
+              textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Botão "COMPARTILHAR ESCALAÇÃO" — abre o card numa folha modal em vez de
+/// deixá-lo sempre visível na aba Participantes: ela já lista os mesmos
+/// confirmados, então um card inline duplicaria nome/avatar de cada um e
+/// quebraria qualquer busca por jogador (inclusive em teste).
+class EscalacaoShareButton extends StatelessWidget {
+  final Match partida;
+  final List<MatchAttendance> confirmados;
+  const EscalacaoShareButton({super.key, required this.partida, required this.confirmados});
+
+  @override
+  Widget build(BuildContext context) {
+    return PrimaryButton(
+      label: 'COMPARTILHAR ESCALAÇÃO',
+      icon: Icons.share_outlined,
+      onPressed: () => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: DalehColors.surface,
+        builder: (ctx) => Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: _EscalacaoSharePreview(partida: partida, confirmados: confirmados),
+        ),
+      ),
+    );
+  }
+}
+
+class _EscalacaoSharePreview extends StatefulWidget {
+  final Match partida;
+  final List<MatchAttendance> confirmados;
+  const _EscalacaoSharePreview({required this.partida, required this.confirmados});
+
+  @override
+  State<_EscalacaoSharePreview> createState() => _EscalacaoSharePreviewState();
+}
+
+class _EscalacaoSharePreviewState extends State<_EscalacaoSharePreview> {
+  final _cardKey = GlobalKey();
+  bool _compartilhando = false;
+
+  Future<void> _compartilhar() async {
+    setState(() => _compartilhando = true);
+    final sucesso = await compartilharImagem(_cardKey, texto: 'Escalação confirmada no DALEH.', prefixoArquivo: 'daleh_escalacao');
+    if (mounted) {
+      setState(() => _compartilhando = false);
+      if (!sucesso) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível compartilhar agora. Tenta de novo.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        RepaintBoundary(key: _cardKey, child: EscalacaoShareCard(partida: widget.partida, confirmados: widget.confirmados)),
+        const SizedBox(height: 14),
+        PrimaryButton(label: 'COMPARTILHAR ESCALAÇÃO', icon: Icons.share_outlined, carregando: _compartilhando, onPressed: _compartilhar),
+      ],
     );
   }
 }
@@ -548,6 +747,8 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
               const Center(
                 child: Text('O MVP ainda não foi eleito.', style: TextStyle(color: DalehColors.muted)),
               ),
+            const SizedBox(height: 20),
+            SumulaShareButton(partida: partida, eventos: eventosComPlacar),
           ],
           if (widget.souCriador && !partida.partidaEncerrada) ...[
             const SizedBox(height: 24),
@@ -599,6 +800,12 @@ class _SumulaTabState extends ConsumerState<_SumulaTab> {
               padding: const EdgeInsets.only(top: 8),
               child: Text('$semLado evento(s) sem lado definido', style: const TextStyle(color: DalehColors.muted, fontSize: 12)),
             ),
+          if (partida.status == 'finished') ...[
+            const SizedBox(height: 20),
+            const Divider(color: DalehColors.line),
+            const SizedBox(height: 14),
+            SumulaShareButton(partida: partida, eventos: eventos),
+          ],
         ],
       ),
     );

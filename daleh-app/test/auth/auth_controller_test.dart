@@ -31,6 +31,8 @@ class _AuthStorageFalsa implements AuthStorage {
 
 class _ApiClientFalso implements ApiClient {
   String tokenDevolvido = 'token-novo';
+  String? erroAoExcluirConta;
+  String? ultimoCaminhoExcluido;
   @override
   Future<String> login(String email, String senha) async => tokenDevolvido;
   @override
@@ -48,7 +50,11 @@ class _ApiClientFalso implements ApiClient {
   Future<Map<String, dynamic>> patchAutenticado(String path, {required String token, Map<String, dynamic>? corpo}) =>
       throw UnimplementedError();
   @override
-  Future<Map<String, dynamic>> deleteAutenticado(String path, {required String token}) => throw UnimplementedError();
+  Future<Map<String, dynamic>> deleteAutenticado(String path, {required String token}) async {
+    ultimoCaminhoExcluido = path;
+    if (erroAoExcluirConta != null) throw ApiException(erroAoExcluirConta!);
+    return {};
+  }
   @override
   Future<Map<String, dynamic>> enviarArquivo(
     String path, {
@@ -141,5 +147,33 @@ void main() {
 
     expect(controller.state.logado, isFalse);
     expect(controller.state.mostrarSeletorModo, isFalse);
+  });
+
+  test('excluirConta() chama DELETE /auth/me e desloga localmente quando o backend confirma', () async {
+    final storage = _AuthStorageFalsa();
+    final api = _ApiClientFalso();
+    final controller = AuthController(api, storage);
+    await Future.delayed(Duration.zero);
+    await controller.login('a@b.com', 'senha');
+
+    final erro = await controller.excluirConta();
+
+    expect(erro, isNull);
+    expect(api.ultimoCaminhoExcluido, '/auth/me');
+    expect(controller.state.logado, isFalse);
+    expect(await storage.obterToken(), isNull);
+  });
+
+  test('excluirConta() mantém a sessão logada e devolve a mensagem quando o backend recusa', () async {
+    final storage = _AuthStorageFalsa();
+    final api = _ApiClientFalso()..erroAoExcluirConta = 'Não foi possível excluir sua conta agora.';
+    final controller = AuthController(api, storage);
+    await Future.delayed(Duration.zero);
+    await controller.login('a@b.com', 'senha');
+
+    final erro = await controller.excluirConta();
+
+    expect(erro, 'Não foi possível excluir sua conta agora.');
+    expect(controller.state.logado, isTrue);
   });
 }

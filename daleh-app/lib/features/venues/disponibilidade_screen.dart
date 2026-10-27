@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/faixa_de_dias.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/venue_slot_tile.dart';
-import '../../theme/daleh_theme.dart';
 import 'models/venue_slot.dart';
 import 'venues_providers.dart';
 
@@ -13,10 +13,6 @@ String _dataIso(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 String _dataFormatada(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-
-const _diasDaSemana = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-
-bool _mesmoDia(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
 class DisponibilidadeScreen extends ConsumerStatefulWidget {
   final String venueId;
@@ -88,7 +84,7 @@ class _DisponibilidadeScreenState extends ConsumerState<DisponibilidadeScreen> {
       appBar: AppBar(title: Text(widget.venueName)),
       body: Column(
         children: [
-          _faixaDeDias(),
+          FaixaDeDias(selecionado: _data, onSelecionar: (d) => setState(() => _data = d), onEscolherOutraData: _escolherData),
           Expanded(
             child: disponibilidadeAsync.when(
               loading: () => const LoadingState(mensagem: 'Carregando horários...'),
@@ -120,73 +116,6 @@ class _DisponibilidadeScreenState extends ConsumerState<DisponibilidadeScreen> {
                 );
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _faixaDeDias() {
-    final hoje = DateTime.now();
-    final dias = List.generate(14, (i) => DateTime(hoje.year, hoje.month, hoje.day + i));
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: SizedBox(
-              height: 64,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: dias.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (context, i) {
-                  final dia = dias[i];
-                  final selecionado = _mesmoDia(dia, _data);
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => setState(() => _data = dia),
-                    child: Container(
-                      width: 52,
-                      decoration: BoxDecoration(
-                        color: selecionado ? DalehColors.turf : DalehColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: selecionado ? DalehColors.turf : DalehColors.line),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _diasDaSemana[dia.weekday % 7],
-                            style: TextStyle(
-                              color: selecionado ? DalehColors.bg : DalehColors.muted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${dia.day}',
-                            style: TextStyle(
-                              color: selecionado ? DalehColors.bg : DalehColors.text,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: _escolherData,
-            tooltip: 'Escolher outra data',
-            icon: const Icon(Icons.calendar_month_outlined),
           ),
         ],
       ),

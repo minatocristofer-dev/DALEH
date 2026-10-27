@@ -115,16 +115,48 @@ export class VenuesService {
     const diaSemana = (inicio.getUTCDay() + 6) % 7;
 
     const slots = await this.prisma.venueSlot.findMany({ where: { venueId, weekday: diaSemana } });
-    const reservas = await this.prisma.booking.findMany({
-      where: {
-        venueSlotId: { in: slots.map((s) => s.id) },
-        date: { gte: inicio, lt: fim },
-        status: { in: ['pending', 'confirmed'] },
-      },
-    });
-    const ocupados = new Set(reservas.map((r) => r.venueSlotId));
+    const slotIds = slots.map((s) => s.id);
+    const [reservas, fixos] = await Promise.all([
+      this.prisma.booking.findMany({
+        where: { venueSlotId: { in: slotIds }, date: { gte: inicio, lt: fim }, status: { in: ['pending', 'confirmed'] } },
+      }),
+      // Horário fixo (recorrente): uma vez marcado pelo dono, bloqueia esse
+      // mesmo dia-da-semana/horário em QUALQUER data futura, não só na data
+      // original da reserva que virou fixa — por isso essa consulta não
+      // filtra por `date`, só pelo slot (o weekday já está implícito nos
+      // `slotIds`, todos do mesmo dia-da-semana).
+      this.prisma.booking.findMany({
+        where: { venueSlotId: { in: slotIds }, isFixed: true, status: { in: ['pending', 'confirmed'] }, date: { lte: inicio } },
+      }),
+    ]);
+    const fixoPorSlot = new Map(fixos.map((f) => [f.venueSlotId, f]));
+    const reservaPorSlot = new Map(reservas.map((r) => [r.venueSlotId, r]));
 
-    return slots.map((s) => ({ ...s, ocupado: ocupados.has(s.id) }));
+    // Nome de quem reservou (pra Agenda do Locador mostrar "RESERVADO —
+    // Fulano"); fixedTeamName já é o nome pronto pro horário fixo, não
+    // precisa resolver usuário nenhum nesse caso.
+    const idsLocatarios = reservas.filter((r) => !fixoPorSlot.has(r.venueSlotId)).map((r) => r.bookedById);
+    const usuarios = idsLocatarios.length
+      ? await this.prisma.user.findMany({ where: { id: { in: idsLocatarios } }, select: { id: true, fullName: true } })
+      : [];
+    const nomePorUserId = new Map(usuarios.map((u) => [u.id, u.fullName]));
+
+    return slots.map((s) => {
+      const fixo = fixoPorSlot.get(s.id);
+      const reserva = reservaPorSlot.get(s.id);
+      // O horário fixo tem prioridade na exibição sobre uma reserva pontual
+      // do mesmo dia (não deveria coexistir na prática, mas se coexistir, o
+      // fixo é a regra "permanente").
+      const bookingAtivo = fixo ?? reserva;
+      return {
+        ...s,
+        ocupado: Boolean(fixo) || Boolean(reserva),
+        fixo: Boolean(fixo),
+        fixedTeamName: fixo?.fixedTeamName ?? null,
+        bookingId: bookingAtivo?.id ?? null,
+        reservadoPorNome: fixo ? fixo.fixedTeamName : reserva ? (nomePorUserId.get(reserva.bookedById) ?? null) : null,
+      };
+    });
   }
 
   async reservar(venueId: string, slotId: string, userId: string, dto: CreateBookingDto) {
@@ -210,6 +242,93 @@ export class VenuesService {
     );
 
     return atualizada;
+  }
+
+  // Marca/desmarca uma reserva como horário fixo (recorrente) — só o dono
+  // da quadra pode. Não é pagamento confirmado, só uma regra de
+  // recorrência (ver comentário no schema, campo `Booking.isFixed`).
+  async marcarComoFixo(bookingId: string, userId: string, isFixed: boolean, fixedTeamName?: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { venueSlot: { include: { venue: true } } },
+    });
+    if (!booking) throw new NotFoundException('Reserva não encontrada.');
+    if (booking.venueSlot.venue.ownerId !== userId) {
+      throw new ForbiddenException('Você não é o dono dessa quadra.');
+    }
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { isFixed, fixedTeamName: isFixed ? (fixedTeamName ?? null) : null },
+    });
+  }
+
+  // Painel do Locador (QA Round 2, Priority 4) — ocupação, valores em
+  // reservas e times mais frequentes, tudo agregado do que já existe.
+  async dashboard(venueId: string, userId: string) {
+    await this.exigirDono(venueId, userId);
+
+    const hoje = new Date();
+    const inicioHoje = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
+    const fimHoje = fimDoDia(inicioHoje);
+    const inicioMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
+    const fimMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 1));
+
+    const slots = await this.prisma.venueSlot.findMany({ where: { venueId } });
+    const slotIds = slots.map((s) => s.id);
+    const precoPorSlot = new Map(slots.map((s) => [s.id, s.price]));
+
+    const [reservasHoje, reservasMes] = await Promise.all([
+      this.prisma.booking.findMany({
+        where: { venueSlotId: { in: slotIds }, date: { gte: inicioHoje, lt: fimHoje }, status: { in: ['pending', 'confirmed'] } },
+      }),
+      this.prisma.booking.findMany({
+        where: { venueSlotId: { in: slotIds }, date: { gte: inicioMes, lt: fimMes }, status: { in: ['pending', 'confirmed'] } },
+      }),
+    ]);
+
+    const valorDoDia = reservasHoje.reduce((soma, r) => soma + (precoPorSlot.get(r.venueSlotId) ?? 0), 0);
+    const valorDoMes = reservasMes.reduce((soma, r) => soma + (precoPorSlot.get(r.venueSlotId) ?? 0), 0);
+
+    // Índice de ocupação do mês: quantos slot-dias possíveis no mês (1 slot
+    // × 1 dia-da-semana × semanas do mês) de fato têm reserva — estimativa
+    // simples (4 ocorrências por dia-da-semana no mês), não um calendário
+    // exato com feriados/bloqueios.
+    const slotsPossiveisNoMes = slots.length * 4;
+    const indiceOcupacaoMes = slotsPossiveisNoMes > 0 ? Math.round((reservasMes.length / slotsPossiveisNoMes) * 100) : 0;
+
+    // Time mais frequente — resolvido por nome do locatário (bookedById é
+    // string solta, não FK; pode ser usuário OU, no caso de horário fixo, o
+    // nome do time gravado em `fixedTeamName`). Só conta reservas
+    // confirmadas/pendentes do mês.
+    const contagemPorNome = new Map<string, number>();
+    for (const r of reservasMes) {
+      if (r.fixedTeamName) {
+        contagemPorNome.set(r.fixedTeamName, (contagemPorNome.get(r.fixedTeamName) ?? 0) + 1);
+      }
+    }
+    if (contagemPorNome.size === 0) {
+      const idsLocatarios = Array.from(new Set(reservasMes.map((r) => r.bookedById)));
+      const usuarios = await this.prisma.user.findMany({ where: { id: { in: idsLocatarios } }, select: { id: true, fullName: true } });
+      const nomePorId = new Map(usuarios.map((u) => [u.id, u.fullName]));
+      for (const r of reservasMes) {
+        const nome = nomePorId.get(r.bookedById);
+        if (nome) contagemPorNome.set(nome, (contagemPorNome.get(nome) ?? 0) + 1);
+      }
+    }
+    let timeMaisFrequente: { nome: string; reservas: number } | null = null;
+    for (const [nome, qtd] of contagemPorNome) {
+      if (!timeMaisFrequente || qtd > timeMaisFrequente.reservas) timeMaisFrequente = { nome, reservas: qtd };
+    }
+
+    return {
+      horariosDisponiveisHoje: Math.max(0, slots.filter((s) => s.weekday === (inicioHoje.getUTCDay() + 6) % 7).length - reservasHoje.length),
+      reservasHoje: reservasHoje.length,
+      reservasMes: reservasMes.length,
+      valorEmReservasHoje: valorDoDia,
+      valorEmReservasMes: valorDoMes,
+      indiceOcupacaoMes,
+      timeMaisFrequente,
+    };
   }
 
   async cancelarMinhaReserva(bookingId: string, userId: string) {

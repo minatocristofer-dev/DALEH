@@ -50,7 +50,8 @@ Widget? resolverDestinoDaNotificacao(String type, Map<String, dynamic> payload) 
     case 'booking_created':
     case 'booking_cancelled_by_renter':
       final venueId = campo('venueId');
-      return venueId == null ? null : MinhaQuadraDetailScreen(venueId: venueId, abaInicial: 1);
+      // Aba 2 = RESERVAS (0=Painel, 1=Horários, 2=Reservas, 3=Bloqueios).
+      return venueId == null ? null : MinhaQuadraDetailScreen(venueId: venueId, abaInicial: 2);
 
     case 'booking_confirmed':
     case 'booking_cancelled_by_owner':

@@ -2,6 +2,7 @@ import '../../core/api_client.dart';
 import 'models/booking.dart';
 import 'models/venue.dart';
 import 'models/venue_blocked_date.dart';
+import 'models/venue_dashboard.dart';
 import 'models/venue_slot.dart';
 
 /// Só chama endpoints que já existem em `src/modules/venues` — nenhum
@@ -58,6 +59,13 @@ class VenuesRepository {
   Future<Venue> obterQuadra(String venueId, String token) async {
     final resp = await _api.getMapa('/venues/$venueId', token: token);
     return Venue.fromJson(resp);
+  }
+
+  /// Painel do Locador (QA Round 2) — ocupação, valores em reservas e time
+  /// mais frequente, agregado pelo backend.
+  Future<VenueDashboard> dashboard(String venueId, String token) async {
+    final resp = await _api.getMapa('/venues/$venueId/dashboard', token: token);
+    return VenueDashboard.fromJson(resp);
   }
 
   Future<Venue> editarQuadra(
@@ -176,6 +184,20 @@ class VenuesRepository {
 
   Future<Booking> atualizarStatusReserva(String bookingId, String token, {required String status}) async {
     final resp = await _api.patchAutenticado('/bookings/$bookingId/status', token: token, corpo: {'status': status});
+    return Booking.fromJson(resp);
+  }
+
+  /// Marcar/remover horário fixo — só o dono da quadra pode chamar (QA
+  /// Round 3, item 2). `fixedTeamName: null` ao desmarcar limpa o nome.
+  Future<Booking> marcarComoFixo(String bookingId, String token, {required bool isFixed, String? fixedTeamName}) async {
+    final resp = await _api.patchAutenticado(
+      '/bookings/$bookingId/fixed',
+      token: token,
+      corpo: {
+        'isFixed': isFixed,
+        if (fixedTeamName != null) 'fixedTeamName': fixedTeamName,
+      },
+    );
     return Booking.fromJson(resp);
   }
 }

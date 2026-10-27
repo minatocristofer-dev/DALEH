@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../shared/widgets/daleh_wordmark.dart';
 import '../../shared/widgets/match_card.dart';
 import '../../theme/daleh_theme.dart';
 import '../matches/jogo_detail_screen.dart';
-import '../matches/jogos_root_screen.dart';
 import '../matches/matches_providers.dart';
 import '../matches/models/match.dart';
 import '../notifications/models/app_notification.dart';
@@ -12,6 +12,7 @@ import '../notifications/notifications_providers.dart';
 import '../notifications/notifications_screen.dart';
 import '../teams/minhas_convocacoes_screen.dart';
 import '../teams/teams_providers.dart';
+import '../venues/explorar_quadras_screen.dart';
 
 /// Painel inicial de verdade (substitui o placeholder "Em breve"). Não cria
 /// nenhum endpoint novo — só combina providers que outras abas já usam
@@ -41,26 +42,32 @@ class InicioScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
+          // Assinatura da marca no canto superior esquerdo (Adendo — "ÚNICO
+          // DALEH visual em todo o app") — a Home é a única tela com um
+          // cabeçalho dedicado só pra isso, por ser a primeira coisa que o
+          // jogador vê ao abrir o app.
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('FALA, CRAQUE!', style: TextStyle(color: DalehColors.muted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
-                  SizedBox(height: 4),
-                  Text.rich(
-                    TextSpan(
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 28, height: 1.12, color: DalehColors.text),
-                      children: [
-                        TextSpan(text: 'Pronto pra\n'),
-                        TextSpan(text: 'mais um jogo?', style: TextStyle(color: DalehColors.turf)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              const DalehWordmark(size: 20),
               _SinoDeNotificacoes(naoLidas: naoLidas),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('FALA, CRAQUE!', style: TextStyle(color: DalehColors.muted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
+              SizedBox(height: 4),
+              Text.rich(
+                TextSpan(
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 28, height: 1.12, color: DalehColors.text),
+                  children: [
+                    TextSpan(text: 'Pronto pra\n'),
+                    TextSpan(text: 'mais um jogo?', style: TextStyle(color: DalehColors.turf)),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 28),
@@ -156,8 +163,8 @@ class InicioScreen extends ConsumerWidget {
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MinhasConvocacoesScreen())),
         ),
         _AcaoRapida(
-          icon: Icons.sports_soccer_outlined,
-          label: 'Meus Jogos',
+          icon: Icons.history_outlined,
+          label: 'Histórico',
           onTap: () => onNavegarParaAba(2),
         ),
         _AcaoRapida(
@@ -168,13 +175,7 @@ class InicioScreen extends ConsumerWidget {
         _AcaoRapida(
           icon: Icons.explore_outlined,
           label: 'Quadras',
-          onTap: () => onNavegarParaAba(3),
-        ),
-        _AcaoRapida(
-          icon: Icons.handshake_outlined,
-          label: 'Desafios',
-          onTap: () => Navigator.of(context)
-              .push(MaterialPageRoute(builder: (_) => const JogosRootScreen(abaInicial: 1))),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ExplorarQuadrasScreen())),
         ),
       ],
     );

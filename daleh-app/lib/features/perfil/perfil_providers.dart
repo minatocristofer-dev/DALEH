@@ -15,3 +15,16 @@ final perfilPublicoProvider = FutureProvider.autoDispose.family<MeuPerfil, Strin
   final repo = ref.read(perfilRepositoryProvider);
   return comSessao(ref, (token) => repo.perfilPublico(userId, token));
 });
+
+class PerfilActions {
+  final Ref ref;
+  PerfilActions(this.ref);
+
+  Future<void> atualizarApelido(String? nickname) async {
+    final repo = ref.read(perfilRepositoryProvider);
+    await comSessao(ref, (token) => repo.atualizarApelido(nickname, token));
+    ref.invalidate(meuPerfilProvider);
+  }
+}
+
+final perfilActionsProvider = Provider((ref) => PerfilActions(ref));

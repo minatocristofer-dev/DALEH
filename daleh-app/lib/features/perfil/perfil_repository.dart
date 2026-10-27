@@ -12,6 +12,12 @@ class PerfilRepository {
     return MeuPerfil.fromJson(resp);
   }
 
+  /// Edição do próprio perfil — hoje só o apelido (ver ConfiguracoesScreen).
+  Future<MeuPerfil> atualizarApelido(String? nickname, String token) async {
+    final resp = await _api.patchAutenticado('/auth/me', token: token, corpo: {'nickname': nickname});
+    return MeuPerfil.fromJson(resp);
+  }
+
   /// Perfil público de outro jogador (Fase 7) — mesmo formato de
   /// `meuPerfil`, só que sem e-mail (o backend nunca devolve isso aqui).
   Future<MeuPerfil> perfilPublico(String userId, String token) async {

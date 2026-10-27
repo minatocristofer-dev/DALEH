@@ -46,3 +46,10 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Assinatura de release — nunca versionar a keystore nem a senha (o
+# android/.gitignore já ignora isso dentro de android/, mas a keystore às
+# vezes é gerada fora dessa pasta por engano).
+android/key.properties
+*.jks
+*.keystore

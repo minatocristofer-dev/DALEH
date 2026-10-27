@@ -11,6 +11,7 @@ import '../../theme/daleh_theme.dart';
 import 'call_ups_tab.dart';
 import '../financeiro/financeiro_tab.dart';
 import 'editar_escudo_screen.dart';
+import 'models/team_dashboard.dart';
 import 'models/team_member.dart';
 import 'teams_providers.dart';
 
@@ -47,7 +48,7 @@ class TeamDetailScreen extends ConsumerWidget {
 
             return TabBarView(
               children: [
-                _VisaoGeralTab(detail: detail, souDono: souDono, possoGerenciar: possoGerenciar),
+                _VisaoGeralTab(teamId: teamId, detail: detail, souDono: souDono, possoGerenciar: possoGerenciar),
                 _ElencoTab(teamId: teamId, detail: detail, meuUserId: meuUserId, possoGerenciar: possoGerenciar),
                 CallUpsTab(teamId: teamId, possoGerenciar: possoGerenciar),
                 FinanceiroTab(teamId: teamId),
@@ -60,15 +61,17 @@ class TeamDetailScreen extends ConsumerWidget {
   }
 }
 
-class _VisaoGeralTab extends StatelessWidget {
+class _VisaoGeralTab extends ConsumerWidget {
+  final String teamId;
   final TeamDetail detail;
   final bool souDono;
   final bool possoGerenciar;
-  const _VisaoGeralTab({required this.detail, required this.souDono, required this.possoGerenciar});
+  const _VisaoGeralTab({required this.teamId, required this.detail, required this.souDono, required this.possoGerenciar});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final d = detail;
+    final dashboardAsync = ref.watch(teamDashboardProvider(teamId));
     final localizacao = [d.city, d.state].where((v) => v != null && v.isNotEmpty).join(' / ');
     TeamMember? dono;
     for (final m in d.members) {
@@ -130,6 +133,17 @@ class _VisaoGeralTab extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: 20),
+        dashboardAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+          // Painel é só um complemento visual — se falhar, a VISÃO GERAL
+          // continua útil com o que já carregou acima (nome/elenco/dono).
+          error: (_, _) => const SizedBox.shrink(),
+          data: (dashboard) => _PainelDoTime(dashboard: dashboard),
+        ),
       ],
     );
   }
@@ -141,6 +155,119 @@ class _VisaoGeralTab extends StatelessWidget {
         Text(label, style: const TextStyle(color: DalehColors.muted)),
         Text(valor, style: const TextStyle(fontWeight: FontWeight.w700)),
       ],
+    );
+  }
+}
+
+// Painel do Dirigente (QA Round 2, Priority 3): próximo/último jogo, última
+// contratação, artilheiro e contadores — só dado real, nunca inventado
+// (quando algo é null, a seção some em vez de mostrar "—"/zero fake).
+class _PainelDoTime extends StatelessWidget {
+  final TeamDashboard dashboard;
+  const _PainelDoTime({required this.dashboard});
+
+  @override
+  Widget build(BuildContext context) {
+    final d = dashboard;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('PAINEL', style: TextStyle(color: DalehColors.muted, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: _statCard('JOGOS', '${d.jogosRealizados}')),
+            const SizedBox(width: 10),
+            Expanded(child: _statCard('GOLS', '${d.golsMarcados}')),
+            const SizedBox(width: 10),
+            Expanded(child: _statCard('ELENCO', '${d.totalJogadores}')),
+          ],
+        ),
+        if (d.proximoJogo != null) ...[const SizedBox(height: 16), _cardJogo('PRÓXIMO JOGO', d.proximoJogo!)],
+        if (d.ultimoJogo != null) ...[const SizedBox(height: 16), _cardJogo('ÚLTIMO JOGO', d.ultimoJogo!)],
+        if (d.artilheiro != null) ...[
+          const SizedBox(height: 16),
+          _cardJogador('ARTILHEIRO', d.artilheiro!.nomeExibido, d.artilheiro!.avatarUrl, '${d.artilheiro!.gols} gols'),
+        ],
+        if (d.ultimaContratacao != null) ...[
+          const SizedBox(height: 16),
+          _cardJogador(
+            'ÚLTIMA CONTRATAÇÃO',
+            d.ultimaContratacao!.nomeExibido,
+            d.ultimaContratacao!.avatarUrl,
+            d.ultimaContratacao!.numeroCamisa != null ? '#${d.ultimaContratacao!.numeroCamisa}' : null,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _statCard(String label, String valor) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Column(
+          children: [
+            Text(valor, style: const TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 22)),
+            const SizedBox(height: 2),
+            Text(label, style: const TextStyle(color: DalehColors.muted, fontSize: 10, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cardJogo(String rotulo, JogoResumo jogo) {
+    final confronto = jogo.homeTeam != null && jogo.awayTeam != null
+        ? '${jogo.homeTeam!.name} x ${jogo.awayTeam!.name}'
+        : 'Partida avulsa';
+    final dataFormatada =
+        '${jogo.scheduledAt.day.toString().padLeft(2, '0')}/${jogo.scheduledAt.month.toString().padLeft(2, '0')} às '
+        '${jogo.scheduledAt.hour.toString().padLeft(2, '0')}:${jogo.scheduledAt.minute.toString().padLeft(2, '0')}';
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(rotulo, style: const TextStyle(color: DalehColors.muted, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                if (jogo.placar != null)
+                  Text(
+                    '${jogo.placar!.casa} x ${jogo.placar!.fora}',
+                    style: const TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 16),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(confronto, style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(
+              [dataFormatada, if (jogo.venueName != null) jogo.venueName!].join(' · '),
+              style: const TextStyle(color: DalehColors.muted, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cardJogador(String rotulo, String nome, String? avatarUrl, String? destaque) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        leading: CrestAvatar(url: avatarUrl, nome: nome, tamanho: 36),
+        title: Text(nome, style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(rotulo, style: const TextStyle(color: DalehColors.muted, fontSize: 11)),
+        trailing: destaque != null
+            ? Text(destaque, style: const TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900))
+            : null,
+      ),
     );
   }
 }

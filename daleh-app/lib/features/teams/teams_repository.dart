@@ -1,6 +1,7 @@
 import '../../core/api_client.dart';
 import 'models/call_up.dart';
 import 'models/team.dart';
+import 'models/team_dashboard.dart';
 import 'models/team_member.dart';
 
 // Sentinela pra distinguir "não mandei o campo numeroCamisa" (omitido) de
@@ -42,6 +43,13 @@ class TeamsRepository {
   Future<TeamDetail> obterTime(String teamId, String token) async {
     final resp = await _api.getMapa('/teams/$teamId', token: token);
     return TeamDetail.fromJson(resp);
+  }
+
+  /// Painel do Dirigente (QA Round 2) — próximo/último jogo, última
+  /// contratação, artilheiro e contadores, tudo agregado pelo backend.
+  Future<TeamDashboard> dashboard(String teamId, String token) async {
+    final resp = await _api.getMapa('/teams/$teamId/dashboard', token: token);
+    return TeamDashboard.fromJson(resp);
   }
 
   /// Envia o escudo do time pro `POST /teams/:id/crest` — só dono/capitão/

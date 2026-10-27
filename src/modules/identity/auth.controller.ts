@@ -1,10 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser, UsuarioAutenticado } from '../../common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { SocialLoginDto } from './dto/social-login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -38,5 +39,22 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   me(@CurrentUser() user: UsuarioAutenticado) {
     return this.authService.me(user.id);
+  }
+
+  // PATCH /v1/auth/me — edição do próprio perfil (hoje só apelido).
+  @Patch('me')
+  @UseGuards(AuthGuard('jwt'))
+  atualizarPerfil(@CurrentUser() user: UsuarioAutenticado, @Body() dto: UpdateProfileDto) {
+    return this.authService.atualizarPerfil(user.id, dto);
+  }
+
+  // DELETE /v1/auth/me — exclusão da própria conta (exigência da Play
+  // Store). Anonimiza em vez de apagar fisicamente — ver comentário em
+  // AuthService.excluirPropriaConta.
+  @Delete('me')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AuthGuard('jwt'))
+  excluirConta(@CurrentUser() user: UsuarioAutenticado) {
+    return this.authService.excluirPropriaConta(user.id);
   }
 }

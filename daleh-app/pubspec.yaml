@@ -53,6 +53,14 @@ dependencies:
   # perfil — sem isso o `http` manda "application/octet-stream" e o backend
   # recusa o arquivo (era essa a causa do erro "tem que ser PNG ou JPEG").
   http_parser: ^4.1.2
+  # Detecção de rosto no aparelho (grátis, sem API) — usada só pra calcular
+  # o enquadramento inicial automático da foto de perfil; o usuário sempre
+  # pode ajustar manualmente depois (arrastar/pinçar), nunca é a única opção.
+  google_mlkit_face_detection: ^0.15.1
+  # Segmentação de pessoa no aparelho (grátis, sem API) — separa o jogador
+  # do fundo da foto original (mantendo cabelo/rosto/ombros/roupa reais),
+  # pra encaixar só a pessoa no card padrão do DALEH.
+  google_mlkit_selfie_segmentation: ^0.12.1
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +72,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # Só usado em teste, pra simular falha de plataforma do image_picker
+  # (ex: permissão de câmera negada) sem precisar de um aparelho real.
+  image_picker_platform_interface: ^2.11.2
 
   # Só usado pra gerar o ícone do launcher Android a partir de
   # assets/icon/app_icon.png (`dart run flutter_launcher_icons`) — não é
@@ -80,6 +92,12 @@ flutter_launcher_icons:
   image_path: "assets/icon/app_icon.png"
   adaptive_icon_background: "#000000"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  # Sem isso, o pacote aplica um inset de 16% por padrão no XML do ícone
+  # adaptativo — como a arte já preenche o quadrado (full-bleed), esse
+  # inset extra encolhia o ícone dentro do círculo/squircle do launcher
+  # (era exatamente o "ícone pequeno" relatado em QA). O próprio Android já
+  # garante a área de segurança central (66,7%) de qualquer jeito.
+  adaptive_icon_foreground_inset: 0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -92,16 +110,13 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Template de "torso com camisa do DALEH" — usado no encaixe da foto de
-  # perfil do jogador (ver EditarFotoScreen). Gerado por IA de imagem sob
-  # direção do usuário, cortado no pescoço e com fundo transparente, pra a
-  # foto do rosto do jogador ser encaixada por cima. As outras 2 poses
-  # (assets/jerseys/jersey_bracos_cruzados.png, jersey_super_heroi.png)
-  # continuam no repositório mas não entram no build por enquanto — só uma
-  # pose fixa por decisão explícita do usuário (QA de 2026-09-21).
   assets:
-    - assets/jerseys/jersey_solto.png
-    - assets/molduras/molde_fixo.png
+    - assets/icon/app_icon.png
+    - assets/jerseys/jersey_super_heroi.png
+    - assets/jerseys/jersey_bracos_cruzados.png
+    - assets/onboarding/encontre_seu_jogo.png
+    - assets/onboarding/gerencie_seu_time.png
+    - assets/onboarding/controle_sua_quadra.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

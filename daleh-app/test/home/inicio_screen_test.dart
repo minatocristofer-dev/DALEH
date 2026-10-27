@@ -9,6 +9,9 @@ import 'package:daleh_app/features/notifications/notifications_providers.dart';
 import 'package:daleh_app/features/teams/minhas_convocacoes_screen.dart';
 import 'package:daleh_app/features/teams/models/call_up.dart';
 import 'package:daleh_app/features/teams/teams_providers.dart';
+import 'package:daleh_app/features/venues/explorar_quadras_screen.dart';
+import 'package:daleh_app/features/venues/models/venue.dart';
+import 'package:daleh_app/features/venues/venues_providers.dart';
 
 Match _partida({required String id, required DateTime scheduledAt, String status = 'scheduled'}) {
   return Match.fromJson({
@@ -49,6 +52,7 @@ Widget _app({
       minhasPartidasProvider.overrideWith((ref) => Future.value(partidas)),
       minhasConvocacoesProvider.overrideWith((ref) => Future.value(convocacoes)),
       notificationsProvider.overrideWith((ref) => Future.value(notificacoes)),
+      quadrasPublicasProvider.overrideWith((ref) => Future.value(<Venue>[])),
     ],
     child: MaterialApp(home: Scaffold(body: InicioScreen(onNavegarParaAba: onNavegar ?? (_) {}))),
   );
@@ -93,16 +97,25 @@ void main() {
     expect(find.text('0'), findsNothing);
   });
 
-  testWidgets('acesso rápido navega pra abas do bottom nav via callback, sem empilhar telas novas', (tester) async {
+  testWidgets('acesso rápido de Histórico/Times navega via callback do bottom nav', (tester) async {
     final abasNavegadas = <int>[];
     await tester.pumpWidget(_app(onNavegar: abasNavegadas.add));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Meus Jogos'));
+    await tester.tap(find.text('Histórico'));
     await tester.tap(find.text('Times'));
-    await tester.tap(find.text('Quadras'));
 
-    expect(abasNavegadas, [2, 1, 3]);
+    expect(abasNavegadas, [2, 1]);
+  });
+
+  testWidgets('acesso rápido de Quadras abre Explorar Quadras diretamente (não é mais aba do bottom nav)', (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Quadras'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExplorarQuadrasScreen), findsOneWidget);
   });
 
   testWidgets('atividade recente mostra notificações reais, mais recentes primeiro na lista devolvida pela API', (tester) async {

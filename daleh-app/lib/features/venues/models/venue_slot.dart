@@ -11,6 +11,13 @@ class VenueSlot {
   final double price;
   final bool isRecurring;
   final bool? ocupado;
+  // Só vêm preenchidos via `GET /venues/:id/availability` (mesma regra de
+  // `ocupado`) — horário fixo (recorrente) e quem reservou, pra Agenda do
+  // Locador (QA Round 3).
+  final bool fixo;
+  final String? fixedTeamName;
+  final String? bookingId;
+  final String? reservadoPorNome;
 
   VenueSlot({
     required this.id,
@@ -21,6 +28,10 @@ class VenueSlot {
     required this.price,
     required this.isRecurring,
     this.ocupado,
+    this.fixo = false,
+    this.fixedTeamName,
+    this.bookingId,
+    this.reservadoPorNome,
   });
 
   factory VenueSlot.fromJson(Map<String, dynamic> json) => VenueSlot(
@@ -32,6 +43,10 @@ class VenueSlot {
         price: (json['price'] as num).toDouble(),
         isRecurring: json['isRecurring'] as bool? ?? true,
         ocupado: json['ocupado'] as bool?,
+        fixo: json['fixo'] as bool? ?? false,
+        fixedTeamName: json['fixedTeamName'] as String?,
+        bookingId: json['bookingId'] as String?,
+        reservadoPorNome: json['reservadoPorNome'] as String?,
       );
 }
 

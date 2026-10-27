@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/daleh_theme.dart';
 import 'home/inicio_screen.dart';
-import 'matches/jogos_root_screen.dart';
+import 'matches/meus_jogos_tab.dart';
 import 'perfil/perfil_screen.dart';
+import 'social/parcas_screen.dart';
 import 'teams/meus_times_screen.dart';
-import 'venues/explorar_quadras_screen.dart';
 
 /// Navegação principal do app: bottom nav com 5 áreas.
 class HomeShell extends StatefulWidget {
@@ -22,8 +22,8 @@ class _HomeShellState extends State<HomeShell> {
     final telas = [
       InicioScreen(onNavegarParaAba: (aba) => setState(() => _aba = aba)),
       const MeusTimesScreen(),
-      const JogosRootScreen(),
-      const ExplorarQuadrasScreen(),
+      const MeusJogosTab(),
+      const ParcasScreen(),
       const PerfilScreen(),
     ];
 
@@ -63,11 +63,11 @@ class _HomeShellState extends State<HomeShell> {
               NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Início'),
               NavigationDestination(icon: Icon(Icons.shield_outlined), selectedIcon: Icon(Icons.shield), label: 'Times'),
               NavigationDestination(
-                icon: Icon(Icons.sports_soccer_outlined),
-                selectedIcon: Icon(Icons.sports_soccer),
-                label: 'Jogos',
+                icon: Icon(Icons.history_outlined),
+                selectedIcon: Icon(Icons.history),
+                label: 'Histórico',
               ),
-              NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Explorar'),
+              NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Parças'),
               NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Perfil'),
             ],
           ),

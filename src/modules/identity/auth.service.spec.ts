@@ -13,11 +13,14 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     prisma = {
-      user: { findUnique: jest.fn(), create: jest.fn() },
+      user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       teamMember: { findMany: jest.fn() },
       matchAttendance: { count: jest.fn().mockResolvedValue(0) },
       matchEvent: { count: jest.fn().mockResolvedValue(0) },
       callUp: { count: jest.fn().mockResolvedValue(0) },
+      deviceToken: { deleteMany: jest.fn() },
+      notification: { deleteMany: jest.fn() },
+      playerProfile: { deleteMany: jest.fn() },
       $transaction: jest.fn(),
     };
     jwt = { sign: jest.fn().mockReturnValue('token-assinado') };
@@ -401,6 +404,66 @@ describe('AuthService', () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.perfilPublico('user-inexistente')).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('excluirPropriaConta', () => {
+    it('anonimiza os dados pessoais em vez de apagar a linha do usuário (preserva histórico compartilhado)', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1', email: 'jogador@teste.com' });
+      prisma.$transaction.mockImplementation(async (promises: any[]) => Promise.all(promises));
+
+      await service.excluirPropriaConta('user-1');
+
+      expect(prisma.deviceToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(prisma.notification.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(prisma.playerProfile.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: expect.objectContaining({
+          email: null,
+          phone: null,
+          passwordHash: null,
+          fullName: 'Usuário removido',
+          avatarUrl: null,
+        }),
+      });
+      // Nunca um DELETE físico do usuário — é isso que preserva MatchEvent,
+      // CallUp, TeamCharge etc. de outras pessoas sem violar FK.
+      expect(prisma.user.delete).toBeUndefined();
+    });
+
+    it('lança 404 ao tentar excluir uma conta que não existe (nunca derruba em silêncio)', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.excluirPropriaConta('user-inexistente')).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('atualizarPerfil (apelido)', () => {
+    it('salva o apelido com espaços nas pontas removidos', async () => {
+      prisma.user.update.mockResolvedValue({});
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        fullName: 'Jogador Teste',
+        nickname: 'Jota',
+        playerModalidades: [],
+      });
+      prisma.teamMember.findMany.mockResolvedValue([]);
+
+      await service.atualizarPerfil('user-1', { nickname: '  Jota  ' });
+
+      expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { nickname: 'Jota' } });
+    });
+
+    it('apelido vazio/só espaço vira null em vez de salvar string vazia', async () => {
+      prisma.user.update.mockResolvedValue({});
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1', fullName: 'Jogador Teste', nickname: null, playerModalidades: [] });
+      prisma.teamMember.findMany.mockResolvedValue([]);
+
+      await service.atualizarPerfil('user-1', { nickname: '   ' });
+
+      expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-1' }, data: { nickname: null } });
     });
   });
 });

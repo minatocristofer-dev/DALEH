@@ -7,8 +7,10 @@ import 'features/auth/seletor_modo_screen.dart';
 import 'features/dirigente/dirigente_shell.dart';
 import 'features/home_shell.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/splash/splash_screen.dart';
 import 'features/venues/locador_shell.dart';
 import 'core/auth_storage.dart';
+import 'shared/widgets/daleh_wordmark.dart';
 import 'theme/daleh_theme.dart';
 
 class DalehApp extends StatelessWidget {
@@ -43,7 +45,7 @@ class _RaizState extends ConsumerState<_Raiz> {
 
     // Splash: enquanto a sessão salva ainda está sendo lida do storage.
     if (auth.verificandoSessao) {
-      return const _Splash();
+      return const SplashScreen();
     }
 
     // Onboarding: mostrado uma única vez, só pra quem ainda não tem sessão
@@ -122,7 +124,7 @@ class _RaizState extends ConsumerState<_Raiz> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('DALEH', style: TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5)),
+                const DalehWordmark(size: 13),
                 Text(
                   subtitulo,
                   maxLines: 1,
@@ -140,44 +142,6 @@ class _RaizState extends ConsumerState<_Raiz> {
             child: Icon(icone, color: DalehColors.bg, size: 18),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Splash curta, só enquanto a sessão salva é lida do storage — mantém a
-/// identidade visual do DALEH, sem animação pesada.
-class _Splash extends StatelessWidget {
-  const _Splash();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: DalehColors.bg,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(color: DalehColors.turf, borderRadius: BorderRadius.circular(18)),
-              child: const Icon(Icons.sports_soccer, color: DalehColors.bg, size: 36),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'DALEH',
-              style: TextStyle(color: DalehColors.turf, fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: 2),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Cada jogo constrói sua história.',
-              style: TextStyle(color: DalehColors.muted, fontSize: 13),
-            ),
-            const SizedBox(height: 28),
-            const CircularProgressIndicator(color: DalehColors.turf),
-          ],
-        ),
       ),
     );
   }

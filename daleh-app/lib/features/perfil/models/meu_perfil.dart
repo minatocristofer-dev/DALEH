@@ -88,6 +88,7 @@ class TimeResumo {
 class MeuPerfil {
   final String id;
   final String fullName;
+  final String? nickname;
   // Nulo quando o perfil vem de `GET /users/:id` (perfil público, Fase 7) —
   // esse endpoint nunca devolve e-mail, por privacidade. Só vem preenchido
   // em `GET /auth/me` (o próprio usuário).
@@ -112,6 +113,7 @@ class MeuPerfil {
   MeuPerfil({
     required this.id,
     required this.fullName,
+    this.nickname,
     this.email,
     this.avatarUrl,
     this.city,
@@ -137,6 +139,7 @@ class MeuPerfil {
     return MeuPerfil(
       id: json['id'] as String,
       fullName: json['fullName'] as String,
+      nickname: json['nickname'] as String?,
       email: json['email'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       city: json['city'] as String?,

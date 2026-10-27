@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { UsersController } from './users.controller';
 import { AuthService } from './auth.service';
+import { FollowsService } from './follows.service';
 import { JwtStrategy } from './jwt.strategy';
 import { SupabaseAuthService } from './supabase-auth.service';
 import { StorageModule } from '../../common/storage/storage.module';
@@ -31,7 +32,7 @@ import { StorageModule } from '../../common/storage/storage.module';
     }),
   ],
   controllers: [AuthController, UsersController],
-  providers: [AuthService, JwtStrategy, SupabaseAuthService],
+  providers: [AuthService, JwtStrategy, SupabaseAuthService, FollowsService],
   exports: [AuthService],
 })
 export class IdentityModule {}

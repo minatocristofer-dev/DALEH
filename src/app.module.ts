@@ -7,6 +7,7 @@ import { VenuesModule } from './modules/venues/venues.module';
 import { MatchesModule } from './modules/matches/matches.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { SupportModule } from './modules/support/support.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -19,6 +20,7 @@ import { HealthController } from './health.controller';
     MatchesModule,
     NotificationsModule,
     FinanceModule,
+    SupportModule,
   ],
   controllers: [HealthController],
 })
