@@ -164,7 +164,7 @@ class InicioScreen extends ConsumerWidget {
         ),
         _AcaoRapida(
           icon: Icons.history_outlined,
-          label: 'Histórico',
+          label: 'Meus Jogos',
           onTap: () => onNavegarParaAba(2),
         ),
         _AcaoRapida(

@@ -97,12 +97,12 @@ void main() {
     expect(find.text('0'), findsNothing);
   });
 
-  testWidgets('acesso rápido de Histórico/Times navega via callback do bottom nav', (tester) async {
+  testWidgets('acesso rápido de Meus Jogos/Times navega via callback do bottom nav', (tester) async {
     final abasNavegadas = <int>[];
     await tester.pumpWidget(_app(onNavegar: abasNavegadas.add));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Histórico'));
+    await tester.tap(find.text('Meus Jogos'));
     await tester.tap(find.text('Times'));
 
     expect(abasNavegadas, [2, 1]);

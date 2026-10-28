@@ -17,8 +17,9 @@
       partir do perfil público de outro jogador; a lista atualiza.
 - [ ] Fale Conosco: escolher categoria, escrever assunto/mensagem, enviar
       — confirmação visual, sem erro.
-- [ ] Histórico: só existe um fluxo chamado "Histórico" na navegação (não
-      existe mais "Jogos"/"Desafios" visível pro Jogador).
+- [ ] Meus Jogos: só existe um fluxo chamado "Meus Jogos" na navegação
+      (não existe mais "Histórico"/"Jogos"/"Desafios" visível pro
+      Jogador).
 - [ ] Onboarding (primeira vez só): 3 telas na ordem JOGADOR →
       DIRIGENTE → LOCADOR, imagem ocupando a tela inteira, sem texto
       cortado, Pular/dots/botão legíveis por cima.
