@@ -33,6 +33,10 @@ class ParcasActions {
     await comSessao(ref, (token) => _repo.deixarDeSeguir(userId, token));
     ref.invalidate(seguindoProvider);
   }
+
+  Future<List<Parca>> buscar(String termo) {
+    return comSessao(ref, (token) => _repo.buscar(termo, token));
+  }
 }
 
 final parcasActionsProvider = Provider((ref) => ParcasActions(ref));

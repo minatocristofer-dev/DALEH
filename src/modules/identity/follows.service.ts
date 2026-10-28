@@ -48,4 +48,51 @@ export class FollowsService {
   seguidores(userId: string) {
     return this.listar({ followingId: userId }, 'follower');
   }
+
+  // Busca de jogador pra seguir — por nome/apelido (parcial) ou e-mail.
+  // E-mail é sempre match EXATO (nunca `contains`): permitir busca parcial
+  // de e-mail deixaria qualquer jogador "escanear" a base digitando pedaços
+  // (ex: "@gmail.com") e descobrir quem tem conta no DALEH. Nome/apelido já
+  // são visíveis publicamente dentro do app (times, jogos, Parças), então
+  // busca parcial neles não vaza nada que já não apareça em algum lugar.
+  async buscar(meuId: string, termoBruto: string) {
+    const termo = termoBruto.trim();
+    if (termo.length < 2) return [];
+
+    const ehEmail = termo.includes('@');
+    const usuarios = ehEmail
+      ? await this.prisma.user.findMany({
+          where: { email: { equals: termo, mode: 'insensitive' }, id: { not: meuId } },
+          take: 20,
+        })
+      : await this.prisma.user.findMany({
+          where: {
+            id: { not: meuId },
+            // Conta excluída (ver `AuthService.excluirPropriaConta`) vira
+            // "Usuário removido" — nunca deve aparecer numa busca nova.
+            fullName: { not: 'Usuário removido' },
+            OR: [
+              { fullName: { contains: termo, mode: 'insensitive' } },
+              { nickname: { contains: termo, mode: 'insensitive' } },
+            ],
+          },
+          take: 20,
+        });
+
+    if (usuarios.length === 0) return [];
+
+    const jaSigo = await this.prisma.playerFollow.findMany({
+      where: { followerId: meuId, followingId: { in: usuarios.map((u) => u.id) } },
+      select: { followingId: true },
+    });
+    const idsQueJaSigo = new Set(jaSigo.map((f) => f.followingId));
+
+    return usuarios.map((u) => ({
+      id: u.id,
+      fullName: u.fullName,
+      nickname: u.nickname,
+      avatarUrl: u.avatarUrl,
+      jaSegue: idsQueJaSigo.has(u.id),
+    }));
+  }
 }

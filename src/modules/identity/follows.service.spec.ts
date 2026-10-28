@@ -8,7 +8,7 @@ describe('FollowsService', () => {
 
   beforeEach(() => {
     prisma = {
-      user: { findUnique: jest.fn() },
+      user: { findUnique: jest.fn(), findMany: jest.fn() },
       playerFollow: { upsert: jest.fn(), deleteMany: jest.fn(), findMany: jest.fn() },
     };
     service = new FollowsService(prisma as unknown as PrismaService);
@@ -78,6 +78,68 @@ describe('FollowsService', () => {
         orderBy: { createdAt: 'desc' },
       });
       expect(resultado).toEqual([{ id: 'user-3', fullName: 'Matheus Oliveira', nickname: null, avatarUrl: null }]);
+    });
+  });
+
+  describe('buscar', () => {
+    it('termo com menos de 2 caracteres devolve lista vazia sem consultar o banco', async () => {
+      const resultado = await service.buscar('user-1', 'a');
+
+      expect(resultado).toEqual([]);
+      expect(prisma.user.findMany).not.toHaveBeenCalled();
+    });
+
+    it('termo com "@" busca por e-mail EXATO, nunca parcial (evita escanear a base)', async () => {
+      prisma.user.findMany.mockResolvedValue([
+        { id: 'user-2', fullName: 'Gabriel Souza', nickname: 'Gabi', avatarUrl: null },
+      ]);
+      prisma.playerFollow.findMany.mockResolvedValue([]);
+
+      await service.buscar('user-1', 'gabriel@teste.com');
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: { email: { equals: 'gabriel@teste.com', mode: 'insensitive' }, id: { not: 'user-1' } },
+        take: 20,
+      });
+    });
+
+    it('termo sem "@" busca por nome OU apelido parcial, excluindo quem já foi excluído da conta', async () => {
+      prisma.user.findMany.mockResolvedValue([]);
+
+      await service.buscar('user-1', 'gabi');
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith({
+        where: {
+          id: { not: 'user-1' },
+          fullName: { not: 'Usuário removido' },
+          OR: [{ fullName: { contains: 'gabi', mode: 'insensitive' } }, { nickname: { contains: 'gabi', mode: 'insensitive' } }],
+        },
+        take: 20,
+      });
+    });
+
+    it('marca jaSegue:true pra quem já é seguido pelo usuário que buscou', async () => {
+      prisma.user.findMany.mockResolvedValue([
+        { id: 'user-2', fullName: 'Gabriel Souza', nickname: 'Gabi', avatarUrl: null },
+        { id: 'user-3', fullName: 'Gabriela Lima', nickname: null, avatarUrl: null },
+      ]);
+      prisma.playerFollow.findMany.mockResolvedValue([{ followingId: 'user-2' }]);
+
+      const resultado = await service.buscar('user-1', 'gabi');
+
+      expect(resultado).toEqual([
+        { id: 'user-2', fullName: 'Gabriel Souza', nickname: 'Gabi', avatarUrl: null, jaSegue: true },
+        { id: 'user-3', fullName: 'Gabriela Lima', nickname: null, avatarUrl: null, jaSegue: false },
+      ]);
+    });
+
+    it('nenhum resultado: não chama playerFollow.findMany à toa', async () => {
+      prisma.user.findMany.mockResolvedValue([]);
+
+      const resultado = await service.buscar('user-1', 'ninguemcomessenome');
+
+      expect(resultado).toEqual([]);
+      expect(prisma.playerFollow.findMany).not.toHaveBeenCalled();
     });
   });
 });

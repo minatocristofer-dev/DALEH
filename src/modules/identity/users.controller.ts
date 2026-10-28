@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -45,6 +46,13 @@ export class UsersController {
   @Get('me/followers')
   seguidores(@CurrentUser() user: UsuarioAutenticado) {
     return this.followsService.seguidores(user.id);
+  }
+
+  // GET /v1/users/search?q=... — precisa vir antes de `:id` pelo mesmo
+  // motivo de `me/following`/`me/followers` acima.
+  @Get('search')
+  buscar(@Query('q') q: string | undefined, @CurrentUser() user: UsuarioAutenticado) {
+    return this.followsService.buscar(user.id, q ?? '');
   }
 
   @Post(':id/follow')

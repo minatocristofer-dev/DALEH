@@ -6,6 +6,7 @@ import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../theme/daleh_theme.dart';
 import '../perfil/perfil_publico_screen.dart';
+import 'buscar_jogadores_screen.dart';
 import 'models/parca.dart';
 import 'parcas_providers.dart';
 
@@ -21,6 +22,13 @@ class ParcasScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Parças'),
+          actions: [
+            IconButton(
+              tooltip: 'Buscar jogador',
+              icon: const Icon(Icons.person_add_alt_1_outlined),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BuscarJogadoresScreen())),
+            ),
+          ],
           bottom: const TabBar(tabs: [Tab(text: 'SEGUINDO'), Tab(text: 'SEGUIDORES')]),
         ),
         body: TabBarView(
