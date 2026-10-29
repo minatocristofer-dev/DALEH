@@ -94,6 +94,42 @@ void main() {
     expect(controller.state.mostrarSeletorModo, isTrue);
   });
 
+  test('login com manterConectado:true (padrão) salva o token no storage seguro', () async {
+    final storage = _AuthStorageFalsa();
+    final controller = AuthController(_ApiClientFalso(), storage);
+    await Future.delayed(Duration.zero);
+
+    await controller.login('a@b.com', 'senha');
+
+    expect(await storage.obterToken(), 'token-novo');
+  });
+
+  test('login com manterConectado:false NÃO salva o token — sessão fica só na memória desta instância', () async {
+    final storage = _AuthStorageFalsa();
+    final controller = AuthController(_ApiClientFalso(), storage);
+    await Future.delayed(Duration.zero);
+
+    final erro = await controller.login('a@b.com', 'senha', manterConectado: false);
+
+    expect(erro, isNull);
+    expect(controller.state.logado, isTrue); // continua logado NESTA instância
+    expect(await storage.obterToken(), isNull); // mas nada foi persistido
+  });
+
+  test('manterConectado:false — reabrir o app (nova instância do controller) NÃO restaura a sessão', () async {
+    final storage = _AuthStorageFalsa();
+    final controller1 = AuthController(_ApiClientFalso(), storage);
+    await Future.delayed(Duration.zero);
+    await controller1.login('a@b.com', 'senha', manterConectado: false);
+    expect(controller1.state.logado, isTrue);
+
+    // Simula reabrir o app: instância nova lendo o mesmo storage.
+    final controller2 = AuthController(_ApiClientFalso(), storage);
+    await Future.delayed(Duration.zero);
+
+    expect(controller2.state.logado, isFalse);
+  });
+
   test('definirModoAcesso persiste o modo e fecha o seletor — escolher o modo nunca muda o token/sessão', () async {
     final storage = _AuthStorageFalsa();
     final controller = AuthController(_ApiClientFalso(), storage);

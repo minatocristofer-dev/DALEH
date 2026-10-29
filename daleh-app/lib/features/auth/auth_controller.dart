@@ -82,11 +82,19 @@ class AuthController extends StateNotifier<AuthState> {
     });
   }
 
-  Future<String?> login(String email, String senha) async {
+  // `manterConectado: false` (checkbox desmarcado na tela de Login) nunca
+  // escreve o token no storage seguro — a sessão fica só na memória desta
+  // instância do `AuthState`, então um cold start novo do app não acha
+  // nenhum token salvo e volta pro Login sozinho. `manterConectado: true`
+  // (padrão, inclusive pra quem chama sem passar o parâmetro — cadastro,
+  // testes antigos) continua persistindo normalmente.
+  Future<String?> login(String email, String senha, {bool manterConectado = true}) async {
     state = state.copyWith(carregando: true);
     try {
       final token = await _api.login(email, senha);
-      await _storage.salvarToken(token);
+      if (manterConectado) {
+        await _storage.salvarToken(token);
+      }
       final modo = await _storage.obterModoAcesso();
       // Login bem-sucedido sempre passa pelo Seletor de Modo — mesmo quando
       // já existe um modo salvo de uma sessão anterior, o usuário pode

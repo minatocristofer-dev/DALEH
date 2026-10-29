@@ -74,6 +74,13 @@ class _RaizState extends ConsumerState<_Raiz> {
       }
     }
 
+    // Login tem Scaffold/visual próprios (fundo de estádio em tela cheia,
+    // fora do card compartilhado) — só o Cadastro continua no layout antigo
+    // (fora do escopo da nova tela de login).
+    if (telaAuth == _TelaAuth.login) {
+      return LoginScreen(onIrParaCadastro: () => setState(() => telaAuth = _TelaAuth.cadastro));
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -84,14 +91,9 @@ class _RaizState extends ConsumerState<_Raiz> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _cabecalho(telaAuth),
+                  _cabecalho(),
                   const SizedBox(height: 16),
-                  if (auth.verificandoSessao)
-                    const Center(child: CircularProgressIndicator(color: DalehColors.turf))
-                  else
-                    telaAuth == _TelaAuth.login
-                        ? LoginScreen(onIrParaCadastro: () => setState(() => telaAuth = _TelaAuth.cadastro))
-                        : CadastroScreen(onIrParaLogin: () => setState(() => telaAuth = _TelaAuth.login)),
+                  CadastroScreen(onIrParaLogin: () => setState(() => telaAuth = _TelaAuth.login)),
                 ],
               ),
             ),
@@ -101,12 +103,10 @@ class _RaizState extends ConsumerState<_Raiz> {
     );
   }
 
-  // O subtítulo e o ícone precisam refletir a tela real (Login ou Cadastro)
-  // — antes ficava fixo em "O básico do app" nas duas, o que não fazia
-  // sentido durante o cadastro (achado em QA real).
-  Widget _cabecalho(_TelaAuth tela) {
-    final subtitulo = tela == _TelaAuth.login ? 'Entre na sua conta' : 'Crie sua conta';
-    final icone = tela == _TelaAuth.login ? Icons.login : Icons.person_add_alt_1;
+  // Cabeçalho do Cadastro (Login não usa mais — tem visual próprio).
+  Widget _cabecalho() {
+    const subtitulo = 'Crie sua conta';
+    const icone = Icons.person_add_alt_1;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),

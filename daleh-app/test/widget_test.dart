@@ -64,23 +64,33 @@ void main() {
     // A sessão salva é carregada de forma assíncrona — precisa de mais de um
     // pump pra sair do spinner de "verificando sessão".
     await tester.pumpAndSettle();
-    expect(find.text('Entrar'), findsWidgets);
+    expect(find.text('ENTRAR'), findsOneWidget);
+    expect(find.text('Bem-vindo de volta'), findsOneWidget);
   });
 
-  testWidgets('cabeçalho acompanha a tela real: "Entre na sua conta" no login, "Crie sua conta" no cadastro (bug achado em QA)', (tester) async {
+  testWidgets('cabeçalho acompanha a tela real: "Bem-vindo de volta" no login, "Crie sua conta" no cadastro (bug achado em QA)', (tester) async {
+    // A tela de Login (fundo de estádio em tela cheia) é mais alta que o
+    // viewport padrão de teste — "Criar conta" fica fora da área visível
+    // sem aumentar a tela.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(ProviderScope(
       overrides: [authStorageProvider.overrideWithValue(FakeAuthStorage())],
       child: const DalehApp(),
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Entre na sua conta'), findsOneWidget);
+    expect(find.text('Bem-vindo de volta'), findsOneWidget);
     expect(find.text('Crie sua conta'), findsNothing);
 
-    await tester.tap(find.text('Cadastre-se'));
+    await tester.ensureVisible(find.text('Criar conta'));
+    await tester.tap(find.text('Criar conta'));
     await tester.pumpAndSettle();
 
     expect(find.text('Crie sua conta'), findsOneWidget);
-    expect(find.text('Entre na sua conta'), findsNothing);
+    expect(find.text('Bem-vindo de volta'), findsNothing);
   });
 }
