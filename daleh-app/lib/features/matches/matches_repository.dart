@@ -12,6 +12,7 @@ class MatchesRepository {
     String token, {
     required String modalidade,
     String? venueId,
+    String? locationName,
     required String scheduledAt,
     int? maxPlayers,
     String visibility = 'public',
@@ -22,6 +23,7 @@ class MatchesRepository {
       corpo: {
         'modalidade': modalidade,
         if (venueId != null && venueId.isNotEmpty) 'venueId': venueId,
+        if (locationName != null && locationName.trim().isNotEmpty) 'locationName': locationName.trim(),
         'scheduledAt': scheduledAt,
         if (maxPlayers != null) 'maxPlayers': maxPlayers,
         'visibility': visibility,

@@ -27,6 +27,7 @@ class MatchesActions {
   Future<Match> criarPartida({
     required String modalidade,
     String? venueId,
+    String? locationName,
     required String scheduledAt,
     int? maxPlayers,
     String visibility = 'public',
@@ -37,6 +38,7 @@ class MatchesActions {
         token,
         modalidade: modalidade,
         venueId: venueId,
+        locationName: locationName,
         scheduledAt: scheduledAt,
         maxPlayers: maxPlayers,
         visibility: visibility,

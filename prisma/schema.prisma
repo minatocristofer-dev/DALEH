@@ -429,6 +429,11 @@ model Match {
   createdBy       User     @relation("MatchCreator", fields: [createdById], references: [id])
   venueId         String?  @map("venue_id")
   venue           Venue?   @relation(fields: [venueId], references: [id])
+  // Nome digitado livre pro local do jogo quando não existe (ainda) uma
+  // Venue cadastrada pra esse lugar (dono não tem perfil no DALEH) — só
+  // usado como vitrine/exibição, nunca referenciado por FK. Se existe
+  // venueId, a UI usa o nome real da Venue em vez deste campo.
+  locationName    String?  @map("location_name")
   modalidadeId    String   @map("modalidade_id")
   modalidade      Modalidade @relation(fields: [modalidadeId], references: [id])
   championshipId  String?  @map("championship_id")

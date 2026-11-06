@@ -29,6 +29,10 @@ export class MatchesService {
       data: {
         createdById: userId,
         venueId: dto.venueId,
+        // Só guarda o nome livre quando NÃO há uma Venue real vinculada —
+        // com venueId presente, o nome de verdade da Venue é que deve
+        // aparecer em qualquer exibição, nunca um texto digitado à parte.
+        locationName: dto.venueId ? null : dto.locationName?.trim() || null,
         modalidadeId: modalidade.id,
         scheduledAt: new Date(dto.scheduledAt),
         maxPlayers: dto.maxPlayers,

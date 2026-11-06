@@ -89,6 +89,57 @@ void main() {
       });
     });
 
+    test('criarPartida envia locationName já sem espaço nas pontas, quando preenchido', () async {
+      final fake = FakeApiClient(respostas: {
+        '/matches': {
+          'id': 'match-1',
+          'createdById': 'user-1',
+          'modalidadeId': 'modalidade-1',
+          'scheduledAt': '2026-09-10T20:00:00.000Z',
+          'status': 'scheduled',
+          'visibility': 'public',
+        },
+      });
+      final repo = MatchesRepository(fake);
+
+      await repo.criarPartida(
+        token,
+        modalidade: 'SOCIETY',
+        scheduledAt: '2026-09-10T20:00:00.000Z',
+        locationName: '  Quadra do Basso  ',
+      );
+
+      expect(fake.chamadas.single.corpo, {
+        'modalidade': 'SOCIETY',
+        'locationName': 'Quadra do Basso',
+        'scheduledAt': '2026-09-10T20:00:00.000Z',
+        'visibility': 'public',
+      });
+    });
+
+    test('criarPartida com locationName vazio/só espaço não manda o campo', () async {
+      final fake = FakeApiClient(respostas: {
+        '/matches': {
+          'id': 'match-1',
+          'createdById': 'user-1',
+          'modalidadeId': 'modalidade-1',
+          'scheduledAt': '2026-09-10T20:00:00.000Z',
+          'status': 'scheduled',
+          'visibility': 'public',
+        },
+      });
+      final repo = MatchesRepository(fake);
+
+      await repo.criarPartida(
+        token,
+        modalidade: 'SOCIETY',
+        scheduledAt: '2026-09-10T20:00:00.000Z',
+        locationName: '   ',
+      );
+
+      expect(fake.chamadas.single.corpo!.containsKey('locationName'), isFalse);
+    });
+
     test('confirmarPresenca chama POST /matches/:id/attendance sem corpo', () async {
       final fake = FakeApiClient();
       final repo = MatchesRepository(fake);

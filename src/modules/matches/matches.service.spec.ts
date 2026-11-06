@@ -41,6 +41,50 @@ describe('MatchesService', () => {
     );
   });
 
+  describe('criarPartida — locationName (jogo sem Venue cadastrada no DALEH)', () => {
+    beforeEach(() => {
+      prisma.modalidade.findUnique.mockResolvedValue({ id: 'mod-1', key: 'SOCIETY' });
+      prisma.match.create.mockResolvedValue({});
+    });
+
+    it('sem venueId: salva o nome livre digitado, já sem espaço nas pontas', async () => {
+      await service.criarPartida('user-1', {
+        modalidade: 'SOCIETY',
+        scheduledAt: '2026-12-01T20:00:00.000Z',
+        locationName: '  Quadra do Basso  ',
+      } as any);
+
+      expect(prisma.match.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ venueId: undefined, locationName: 'Quadra do Basso' }),
+      });
+    });
+
+    it('com venueId: ignora o nome livre — a Venue real sempre prevalece, nunca os dois juntos', async () => {
+      await service.criarPartida('user-1', {
+        modalidade: 'SOCIETY',
+        scheduledAt: '2026-12-01T20:00:00.000Z',
+        venueId: 'venue-1',
+        locationName: 'Quadra do Basso',
+      } as any);
+
+      expect(prisma.match.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ venueId: 'venue-1', locationName: null }),
+      });
+    });
+
+    it('nome livre vazio/só espaço vira null, não string vazia', async () => {
+      await service.criarPartida('user-1', {
+        modalidade: 'SOCIETY',
+        scheduledAt: '2026-12-01T20:00:00.000Z',
+        locationName: '   ',
+      } as any);
+
+      expect(prisma.match.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ locationName: null }),
+      });
+    });
+  });
+
   describe('obterPartida — proteção de partida privada', () => {
     const partidaPrivada = {
       id: 'match-1',

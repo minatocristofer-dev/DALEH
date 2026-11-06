@@ -29,6 +29,38 @@ void main() {
       expect(partida.souCriador('user-1'), isTrue);
     });
 
+    test('sem Venue cadastrada, venueName cai pro locationName digitado livre', () {
+      final partida = Match.fromJson({
+        'id': 'match-1',
+        'createdById': 'user-1',
+        'venueId': null,
+        'venue': null,
+        'locationName': 'Quadra do Basso',
+        'modalidadeId': 'modalidade-1',
+        'scheduledAt': '2026-09-10T20:00:00.000Z',
+        'status': 'scheduled',
+        'visibility': 'public',
+      });
+
+      expect(partida.venueName, 'Quadra do Basso');
+    });
+
+    test('com Venue cadastrada, venueName usa o nome real — nunca o locationName (mesmo se os dois vierem)', () {
+      final partida = Match.fromJson({
+        'id': 'match-1',
+        'createdById': 'user-1',
+        'venueId': 'venue-1',
+        'venue': {'id': 'venue-1', 'name': 'Arena Central'},
+        'locationName': 'nome digitado que não deveria aparecer',
+        'modalidadeId': 'modalidade-1',
+        'scheduledAt': '2026-09-10T20:00:00.000Z',
+        'status': 'scheduled',
+        'visibility': 'public',
+      });
+
+      expect(partida.venueName, 'Arena Central');
+    });
+
     test('lê jogo nascido de um desafio de time, com nomes dos times', () {
       final partida = Match.fromJson({
         'id': 'match-2',

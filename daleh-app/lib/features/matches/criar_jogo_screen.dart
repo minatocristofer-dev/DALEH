@@ -20,6 +20,7 @@ class _CriarJogoScreenState extends ConsumerState<CriarJogoScreen> {
   DateTime? _data;
   TimeOfDay? _hora;
   final _maxPlayersCtrl = TextEditingController();
+  final _localCtrl = TextEditingController();
   bool _privada = false;
   bool _enviando = false;
   String? _erro;
@@ -27,6 +28,7 @@ class _CriarJogoScreenState extends ConsumerState<CriarJogoScreen> {
   @override
   void dispose() {
     _maxPlayersCtrl.dispose();
+    _localCtrl.dispose();
     super.dispose();
   }
 
@@ -62,6 +64,7 @@ class _CriarJogoScreenState extends ConsumerState<CriarJogoScreen> {
     try {
       final partida = await ref.read(matchesActionsProvider).criarPartida(
             modalidade: _modalidade,
+            locationName: _localCtrl.text,
             scheduledAt: scheduledAt.toIso8601String(),
             maxPlayers: maxPlayers,
             visibility: _privada ? 'private' : 'public',
@@ -91,6 +94,22 @@ class _CriarJogoScreenState extends ConsumerState<CriarJogoScreen> {
               style: TextStyle(color: DalehColors.muted, fontSize: 13),
             ),
             const SizedBox(height: 20),
+            TextField(
+              controller: _localCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Local (opcional)',
+                hintText: 'Ex: Quadra do Basso',
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                'Pra quadras que ainda não têm perfil no DALEH — só pra mostrar onde é, '
+                'não vincula com nenhuma quadra cadastrada.',
+                style: TextStyle(color: DalehColors.muted, fontSize: 11),
+              ),
+            ),
+            const SizedBox(height: 14),
             DropdownButtonFormField<String>(
               initialValue: _modalidade,
               decoration: const InputDecoration(labelText: 'MODALIDADE'),

@@ -81,7 +81,11 @@ class Match {
       id: json['id'] as String,
       createdById: json['createdById'] as String,
       venueId: json['venueId'] as String?,
-      venueName: venue?['name'] as String?,
+      // Sem Venue cadastrada (dono sem perfil no DALEH ainda), usa o nome
+      // livre digitado na criação — pros widgets que já mostram
+      // `venueName` por aí (jogo_detail_screen, match_card, etc.), não
+      // precisa mudar nada neles: o fallback já resolve.
+      venueName: (venue?['name'] as String?) ?? (json['locationName'] as String?),
       modalidadeId: json['modalidadeId'] as String,
       modalidadeLabel: modalidade?['label'] as String?,
       homeTeamId: json['homeTeamId'] as String?,
