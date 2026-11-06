@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/analytics_service.dart';
 import '../../core/session_guard.dart';
 import '../auth/auth_controller.dart';
 import 'models/booking.dart';
@@ -161,6 +162,7 @@ class VenuesActions {
     final reserva = await comSessao(ref, (token) => _repo.reservar(venueId, slotId, token, data: data));
     ref.invalidate(disponibilidadeProvider((venueId: venueId, data: data)));
     ref.invalidate(minhasReservasProvider);
+    ref.read(analyticsServiceProvider).logEvento('booking_created');
     return reserva;
   }
 

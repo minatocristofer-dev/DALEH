@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/analytics_service.dart';
 import '../../core/api_client.dart';
 import '../../core/session_guard.dart';
 import '../auth/auth_controller.dart';
@@ -45,6 +46,7 @@ class MatchesActions {
       ),
     );
     ref.invalidate(minhasPartidasProvider);
+    ref.read(analyticsServiceProvider).logEvento('match_created');
     return partida;
   }
 

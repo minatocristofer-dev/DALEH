@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "145264719670",
+    "project_id": "daleh-app-4511b",
+    "storage_bucket": "daleh-app-4511b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:145264719670:android:7bcc80f35a6a6f6bc3e597",
+        "android_client_info": {
+          "package_name": "com.dalehapp.daleh"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9RZZ_orH5_RDA_i6nbY_PSyw0w1Aozm4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

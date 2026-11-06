@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/analytics_service.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_storage.dart';
 import '../../core/supabase_config.dart';
@@ -52,8 +55,14 @@ class AuthState {
 class AuthController extends StateNotifier<AuthState> {
   final ApiClient _api;
   final AuthStorage _storage;
+  // Opcional (default pra uma instância nova) só pra não quebrar os vários
+  // testes que já constroem `AuthController` direto com 2 argumentos —
+  // analytics nunca precisa de mock de verdade, já falha em silêncio sozinho.
+  final AnalyticsService _analytics;
 
-  AuthController(this._api, this._storage) : super(const AuthState()) {
+  AuthController(this._api, this._storage, [AnalyticsService? analytics])
+      : _analytics = analytics ?? AnalyticsService(),
+        super(const AuthState()) {
     _carregarSessaoSalva();
     _escutarLoginSocial();
   }
@@ -101,6 +110,7 @@ class AuthController extends StateNotifier<AuthState> {
       // querer confirmar/trocar. Só a sessão restaurada automaticamente
       // (app reaberto sem deslogar) pula direto pro modo salvo.
       state = state.copyWith(token: token, modoAcesso: modo, carregando: false, mostrarSeletorModo: true);
+      unawaited(_analytics.logEvento('login_completed'));
       return null;
     } on ApiException catch (e) {
       state = state.copyWith(carregando: false);
@@ -116,6 +126,7 @@ class AuthController extends StateNotifier<AuthState> {
       final token = await _api.registrar(dto);
       await _storage.salvarToken(token);
       state = state.copyWith(token: token, modoAcesso: ModoAcesso.jogador, carregando: false, mostrarSeletorModo: true);
+      unawaited(_analytics.logEvento('signup_completed'));
       return null;
     } on ApiException catch (e) {
       state = state.copyWith(carregando: false);
@@ -143,6 +154,7 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> definirModoAcesso(ModoAcesso modo) async {
     await _storage.salvarModoAcesso(modo);
     state = state.copyWith(modoAcesso: modo, mostrarSeletorModo: false);
+    unawaited(_analytics.logEvento('mode_selected', parametros: {'modo': modo.name}));
   }
 
   /// Reabre o Seletor de Modo sem deslogar — usado pelo "Trocar modo" dentro
@@ -184,5 +196,5 @@ class AuthController extends StateNotifier<AuthState> {
 }
 
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>((ref) {
-  return AuthController(ref.read(apiClientProvider), ref.read(authStorageProvider));
+  return AuthController(ref.read(apiClientProvider), ref.read(authStorageProvider), ref.read(analyticsServiceProvider));
 });

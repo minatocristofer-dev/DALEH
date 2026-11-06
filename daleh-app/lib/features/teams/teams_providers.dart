@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/analytics_service.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_storage.dart';
 import '../../core/session_guard.dart';
@@ -57,6 +58,7 @@ class TeamsActions {
   Future<Team> criarTime({required String name, String? city, String? state}) async {
     final time = await comSessao(ref, (token) => _repo.criarTime(token, name: name, city: city, state: state));
     ref.invalidate(meusTimesProvider);
+    ref.read(analyticsServiceProvider).logEvento('team_created');
     return time;
   }
 
