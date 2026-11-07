@@ -105,7 +105,13 @@ Fornecer uma conta de teste pronta, por exemplo (ver `scripts/seed-qa.ts`):
 
 - **Ícone 512×512**: pronto (`daleh-app/assets/icon/app_icon.png`)
 - **Feature graphic 1024×500**: pronto, gerado e conferido — `docs/store-assets/feature-graphic-1024x500.png`
-- **Screenshots reais do app**: ainda faltam (precisam ser capturas de tela de verdade, não geradas por IA — a Play Store exige)
+- **Screenshots reais do app**: prontas — 5 capturas de verdade (emulador, conta de teste seed, sem nenhum dado pessoal real), `docs/store-assets/screenshots/`:
+  - `daleh-screenshot-00-login.png` — tela de login
+  - `daleh-screenshot-01-home.png` — Home do Jogador (mostra inclusive o "local livre" de jogo avulso, "Quadra do Basso")
+  - `daleh-screenshot-02-perfil.png` — Perfil / Player Card
+  - `daleh-screenshot-03-times.png` — Meus Times (modo Dirigente)
+  - `daleh-screenshot-04-locador.png` — Minhas Quadras (modo Locador)
+  - Cópia idêntica também em `C:\Users\minat\Downloads\` pra upload direto no Play Console
 
 ---
 
