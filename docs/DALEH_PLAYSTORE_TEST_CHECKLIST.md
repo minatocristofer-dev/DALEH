@@ -10,7 +10,7 @@
 - [x] Segredos de produção (`SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `DATABASE_URL`, etc.) só existem como env var no Render, nunca no repositório
 - [x] `daleh-app/android/.gitignore` (gerado pelo Flutter) já protegia `key.properties`, `*.jks`, `*.keystore`
 - [x] `daleh-app/.gitignore` (raiz do app) reforçado hoje com as mesmas 3 regras, por redundância
-- [!] Nenhuma keystore de release existe ainda — ver seção 18 (Signing)
+- [x] Keystore de release criada e confirmada funcionando (07/11/2026) — `flutter build appbundle --release` gera `.aab` assinado de verdade (`CN=DALEH, O=DALEH, Santa Maria/RS/BR`), não mais a chave de debug
 
 ## 2. Backend
 
@@ -35,8 +35,8 @@
 ## 5. Build
 
 - [ ] `flutter analyze`/`flutter test` — ver seção 20
-- [ ] `flutter build web` / `flutter build apk --debug` — ver seção 21
-- [!] `flutter build appbundle --release` hoje cairia pra **assinatura de debug** (sem `key.properties`/keystore) — build resultante não serve pro Play Console
+- [x] `flutter build apk --debug` confirmado funcionando (usado pros testes em dispositivo real ao longo do projeto)
+- [x] `flutter build appbundle --release` confirmado funcionando (07/11/2026), assinado com a keystore de release real — `.aab` pronto pra upload no Play Console (`C:\Users\minat\Downloads\DALEH-release.aab`)
 
 ## 6. Autenticação
 
@@ -90,11 +90,12 @@
 
 ## 15. Privacidade/termos
 
-- [x] Rascunhos criados hoje: `docs/PRIVACY_POLICY_DRAFT.md`, `docs/TERMS_OF_USE_DRAFT.md` — baseados só nos dados que o DALEH realmente coleta (ver schema Prisma), precisam de revisão jurídica antes de publicar
+- [x] Política de Privacidade **publicada** e no ar: `https://daleh-web.onrender.com/privacidade.html` (fonte em `docs/PRIVACY_POLICY_DRAFT.md`), e-mail de suporte real já preenchido (`appdaleh@gmail.com`) — pronta pro campo "Política de Privacidade" do Play Console. Ainda sem revisão jurídica.
+- [ ] `docs/TERMS_OF_USE_DRAFT.md` — rascunho existe, ainda **não publicado** em URL pública (candidato natural: `daleh-web/public/termos.html`, mesmo padrão da política)
 
 ## 16. Analytics
 
-- [ ] Nenhum SDK de analytics existe hoje (nem backend, nem Flutter) — nenhum serviço externo foi contratado/configurado, conforme instruído. Arquitetura mínima recomendada documentada abaixo (seção "Recomendação — Analytics").
+- [x] Firebase Analytics implementado e em produção (05/11/2026) — projeto `daleh-app-4511b`, `AnalyticsService.logEvento()` (falha-silenciosa por design) instrumentando `app_opened`, `login_completed`, `signup_completed`, `mode_selected`, `team_created`, `booking_created`, `player_card_shared`, entre outros. Já declarado como terceiro recebendo dados em `docs/PRIVACY_POLICY_DRAFT.md`/página pública e em `docs/PLAYSTORE_SUBMISSION_DATA.md` (Data Safety).
 
 ## 17. Crash reporting
 
@@ -112,8 +113,9 @@
 
 - [x] Ícone 512x512 / adaptive icon / logo: prontos (`assets/icon/app_icon.png`, `app_icon_foreground.png`)
 - [x] Splash screen: pronta (`lib/features/splash/splash_screen.dart`, ainda não commitada)
-- [ ] Feature graphic (1024x500): **não existe** — precisa ser criado antes da submissão
-- [ ] Screenshots reais da loja (capturas do app rodando): **não existem** — os prints usados até agora são só de QA interno
+- [x] Feature graphic (1024x500): pronto — `docs/store-assets/feature-graphic-1024x500.png` (gerado via IA, conferido nas dimensões exatas)
+- [x] Screenshots reais da loja: prontas — 5 capturas reais do app no emulador, só com contas de teste seed (sem dado pessoal real), `docs/store-assets/screenshots/` + cópia em Downloads
+- [x] Descrição curta (74/80 caracteres) e descrição longa (1886/4000 caracteres) escritas — ver `docs/PLAYSTORE_SUBMISSION_DATA.md`
 
 ---
 
