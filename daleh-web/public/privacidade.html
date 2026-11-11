@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Política de Privacidade — DALEH</title>
+<style>
+  :root {
+    --bg: #0a1512;
+    --surface: #101c18;
+    --surface2: #17261f;
+    --line: #223229;
+    --turf: #c6ff4d;
+    --text: #f2f7f4;
+    --muted: #85998e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  header {
+    margin-bottom: 32px;
+  }
+  .wordmark {
+    color: var(--turf);
+    font-weight: 900;
+    font-style: italic;
+    font-size: 28px;
+    letter-spacing: 0.5px;
+    margin: 0;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 32px 0 8px;
+  }
+  h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--turf);
+    margin: 28px 0 10px;
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 18px 0 8px;
+  }
+  p, li {
+    font-size: 15px;
+    color: var(--text);
+  }
+  .muted {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  a { color: var(--turf); }
+  ul { padding-left: 20px; }
+  hr { border: none; border-top: 1px solid var(--line); margin: 32px 0; }
+  footer {
+    margin-top: 40px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="wordmark">DALEH</p>
+    <p class="subtitle">Cada jogo constrói sua história.</p>
+  </header>
+
+  <h1>Política de Privacidade</h1>
+  <p class="muted">Última atualização: 10 de novembro de 2026</p>
+
+  <h2>1. Quem somos</h2>
+  <p>O DALEH é um aplicativo que organiza futebol amador — times, jogos, quadras e o histórico esportivo do jogador. Esta política explica quais dados coletamos, por quê, e como você pode controlá-los.</p>
+
+  <h2>2. Dados que coletamos</h2>
+
+  <h3>2.1 Dados de cadastro e perfil (diretamente de você)</h3>
+  <ul>
+    <li>Nome completo</li>
+    <li>E-mail</li>
+    <li>Telefone (opcional)</li>
+    <li>Cidade e estado</li>
+    <li>Data de nascimento (opcional, usada só pra calcular idade exibida no seu perfil)</li>
+    <li>Foto de perfil (processada no próprio aparelho — detecção de rosto e remoção de fundo rodam localmente, nunca em servidor externo — e depois enviada pro nosso servidor)</li>
+    <li>Pé dominante, biografia curta, nível de habilidade (todos opcionais)</li>
+  </ul>
+
+  <h3>2.2 Dados de atividade esportiva (gerados pelo uso do app)</h3>
+  <ul>
+    <li>Times que você participa ou administra</li>
+    <li>Jogos e peladas em que você confirma presença</li>
+    <li>Estatísticas (gols, assistências, cartões, MVPs) registradas em súmulas de partidas</li>
+    <li>Convocações recebidas/respondidas</li>
+    <li>Reservas de quadra feitas ou recebidas (se você for dono de quadra)</li>
+    <li>Cobranças de time e status de pagamento, quando o time usa essa função</li>
+  </ul>
+
+  <h3>2.3 Dados técnicos</h3>
+  <ul>
+    <li>Token de sessão (pra manter você logado)</li>
+    <li>Token de notificação push do dispositivo (quando a função de notificações push estiver habilitada)</li>
+    <li>Dados de uso do app (analytics): quais telas/ações você usa — abrir o app, cadastro, login, criar time, criar jogo, fazer reserva, compartilhar Player Card. Não inclui nome, e-mail ou qualquer dado que te identifique diretamente — é tratado pelo Google Firebase Analytics (ver seção 4)</li>
+  </ul>
+
+  <h2>3. Como usamos seus dados</h2>
+  <p>Usamos seus dados exclusivamente para:</p>
+  <ul>
+    <li>Criar e manter sua conta e seu histórico esportivo</li>
+    <li>Conectar você a times, jogos e quadras</li>
+    <li>Mostrar seu Player Card e estatísticas pra você e pros outros usuários do app</li>
+    <li>Processar reservas de quadra e convocações de time</li>
+    <li>Enviar notificações relacionadas à sua atividade (convocação, resultado de reserva, etc.)</li>
+  </ul>
+  <div class="card">
+    <strong>Não vendemos nem alugamos seus dados pessoais a terceiros.</strong> Não usamos seus dados para publicidade direcionada — o app não tem nenhum SDK de anúncios ou rastreamento publicitário.
+  </div>
+
+  <h2>4. Com quem compartilhamos dados</h2>
+
+  <h3>4.1 Outros usuários do app</h3>
+  <p>Seu nome, foto, posição, cidade/estado, estatísticas e histórico de times/jogos são visíveis para qualquer outro usuário autenticado do DALEH (perfil público) — isso é inerente ao produto: um Player Card compartilhável e um histórico esportivo público entre jogadores. Seu e-mail e telefone <strong>nunca</strong> são mostrados no perfil público.</p>
+
+  <h3>4.2 Provedores de infraestrutura</h3>
+  <ul>
+    <li><strong>Supabase</strong> (banco de dados e armazenamento de arquivos) — hospeda todos os dados do app, incluindo sua foto de perfil.</li>
+    <li><strong>Render</strong> — hospeda o servidor (API) do DALEH.</li>
+    <li><strong>Google (Firebase/Google Sign-In)</strong> — usado para login social opcional via conta Google. Se você usa essa opção, o Google compartilha conosco seu e-mail e nome, conforme autorizado por você no momento do login.</li>
+    <li><strong>Google Firebase Analytics</strong> — coleta dados de uso do app (ver seção 2.3) de forma agregada, pra entender quais funcionalidades são usadas.</li>
+  </ul>
+  <p class="muted">Nenhum outro serviço de terceiros (publicidade, rastreamento publicitário) está integrado ao app hoje.</p>
+
+  <h2>5. Processamento no seu aparelho</h2>
+  <p>A foto de perfil passa por detecção de rosto e remoção de fundo <strong>inteiramente no seu aparelho</strong>, usando Google ML Kit — a imagem original só é enviada pro servidor depois de processada, e só a versão final (rosto sobre o fundo padrão do DALEH) é armazenada.</p>
+
+  <h2>6. Quanto tempo guardamos seus dados</h2>
+  <p>Guardamos seus dados enquanto sua conta existir. Dados de histórico esportivo que fazem parte de atividades compartilhadas com outras pessoas (uma súmula de jogo, uma convocação de time) continuam existindo mesmo depois que você exclui sua conta, mas sem nenhum dado que te identifique (ver seção 7).</p>
+
+  <h2>7. Como excluir sua conta e seus dados</h2>
+  <p>Você pode excluir sua conta a qualquer momento dentro do app, em <strong>Perfil → Configurações (ícone de engrenagem) → Excluir minha conta</strong>. A exclusão:</p>
+  <ul>
+    <li>Remove permanentemente seu nome, e-mail, telefone, foto, cidade, estado e data de nascimento</li>
+    <li>Torna sua conta impossível de acessar novamente</li>
+    <li>Remove suas notificações e token de dispositivo imediatamente</li>
+  </ul>
+  <p>Por motivo técnico, registros de atividade que outras pessoas compartilham com você (por exemplo, a súmula de um jogo em que você participou, ou uma convocação de time) <strong>não são apagados fisicamente</strong> — eles permanecem como parte do histórico do time/jogo pra outras pessoas, mas completamente desvinculados da sua identidade (sem seu nome, e-mail ou qualquer dado pessoal).</p>
+  <div class="card">
+    <strong>Sem acesso ao app?</strong> Se você desinstalou o app ou perdeu o acesso à conta e quer pedir a exclusão mesmo assim, envie um e-mail pra <a href="mailto:[EMAIL-SUPORTE-PENDENTE]">[EMAIL-SUPORTE-PENDENTE]</a> a partir do mesmo e-mail cadastrado na conta, pedindo a exclusão — respondemos e confirmamos em até 15 dias.
+  </div>
+
+  <h2>8. Seus direitos (LGPD)</h2>
+  <p>Você pode, a qualquer momento:</p>
+  <ul>
+    <li>Acessar os dados que temos sobre você (tela de Perfil, dentro do app)</li>
+    <li>Corrigir dados incorretos (editar perfil, dentro do app)</li>
+    <li>Excluir sua conta (ver seção 7)</li>
+    <li>Pedir uma cópia dos seus dados — entre em contato: <a href="mailto:[EMAIL-SUPORTE-PENDENTE]">[EMAIL-SUPORTE-PENDENTE]</a></li>
+  </ul>
+
+  <h2>9. Contato</h2>
+  <p>Dúvidas sobre esta política ou sobre seus dados: <a href="mailto:[EMAIL-SUPORTE-PENDENTE]">[EMAIL-SUPORTE-PENDENTE]</a></p>
+
+  <hr />
+  <footer>
+    DALEH — organização de futebol amador.
+  </footer>
+</div>
+</body>
+</html>

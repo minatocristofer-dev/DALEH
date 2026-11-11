@@ -2,7 +2,7 @@
 
 > **Este é um rascunho técnico pra revisão jurídica antes de publicar.** Foi montado só a partir dos dados que o código do DALEH efetivamente coleta e dos serviços externos que ele efetivamente usa (confirmado olhando `prisma/schema.prisma` e as dependências reais do projeto) — nada aqui foi inventado ou "preenchido por precaução". Antes de publicar, um advogado precisa revisar a redação final e confirmar adequação à LGPD e às políticas de Data Safety da Google Play.
 
-**Última atualização:** [preencher na publicação]
+**Última atualização:** 10 de novembro de 2026
 
 ## 1. Quem somos
 
@@ -30,6 +30,7 @@ O DALEH é um aplicativo que organiza futebol amador — times, jogos, quadras e
 ### 2.3 Dados técnicos
 - Token de sessão (pra manter você logado)
 - Token de notificação push do dispositivo (quando a função de notificações push estiver habilitada)
+- Dados de uso do app (analytics): quais telas/ações você usa — abrir o app, cadastro, login, criar time, criar jogo, fazer reserva, compartilhar Player Card. Não inclui nome, e-mail ou qualquer dado que te identifique diretamente — é tratado pelo Google Firebase Analytics (ver seção 4.2)
 
 ## 3. Como usamos seus dados
 
@@ -51,8 +52,9 @@ Seu nome, foto, posição, cidade/estado, estatísticas e histórico de times/jo
 - **Supabase** (banco de dados PostgreSQL e armazenamento de arquivos) — hospeda todos os dados do app, incluindo sua foto de perfil.
 - **Render** — hospeda o servidor (API) do DALEH.
 - **Google (Firebase/Google Sign-In)** — usado para login social opcional via conta Google. Se você usa essa opção, o Google compartilha conosco seu e-mail e nome, conforme autorizado por você no momento do login.
+- **Google Firebase Analytics** — coleta dados de uso do app (ver seção 2.3) de forma agregada, pra entender quais funcionalidades são usadas. Não usamos isso para publicidade — o app não tem nenhum SDK de anúncios.
 
-Nenhum outro serviço de terceiros (analytics, publicidade, rastreamento) está integrado ao app hoje.
+Nenhum outro serviço de terceiros (publicidade, rastreamento publicitário) está integrado ao app hoje.
 
 ## 5. Processamento no seu aparelho
 
@@ -71,7 +73,7 @@ Você pode excluir sua conta a qualquer momento dentro do app, em **Perfil → C
 
 Por motivo técnico, registros de atividade que outras pessoas compartilham com você (por exemplo, a súmula de um jogo em que você participou, ou uma convocação de time) **não são apagados fisicamente** — eles permanecem como parte do histórico do time/jogo pra outras pessoas, mas completamente desvinculados da sua identidade (sem seu nome, e-mail ou qualquer dado pessoal).
 
-[Link de exclusão de conta fora do app — preencher se a Google exigir uma URL pública além da opção dentro do app]
+**Se você não tiver mais acesso ao app** (desinstalou, perdeu a conta) e quiser pedir a exclusão mesmo assim, envie um e-mail pra [EMAIL-SUPORTE-PENDENTE] a partir do mesmo e-mail cadastrado na conta, pedindo a exclusão — respondemos e confirmamos a exclusão em até 15 dias.
 
 ## 8. Seus direitos (LGPD)
 
@@ -79,12 +81,12 @@ Você pode, a qualquer momento:
 - Acessar os dados que temos sobre você (tela de Perfil, dentro do app)
 - Corrigir dados incorretos (editar perfil, dentro do app)
 - Excluir sua conta (ver seção 7)
-- Pedir uma cópia dos seus dados — entre em contato: [e-mail de suporte — preencher]
+- Pedir uma cópia dos seus dados — entre em contato: [EMAIL-SUPORTE-PENDENTE]
 
 ## 9. Contato
 
-Dúvidas sobre esta política ou sobre seus dados: [e-mail de suporte — preencher]
+Dúvidas sobre esta política ou sobre seus dados: [EMAIL-SUPORTE-PENDENTE]
 
 ---
 
-**Nota para quem for publicar**: campos marcados `[preencher]` precisam de valor real antes da publicação. Esta política cobre só o que o código confirma hoje — qualquer integração nova (analytics, push real, pagamentos) exige atualizar este documento antes de ir ao ar.
+**Nota para quem for publicar**: `[EMAIL-SUPORTE-PENDENTE]` precisa ser trocado pelo e-mail de suporte real antes da publicação (também usado em `daleh-web/public/privacidade.html` — buscar e trocar nos dois lugares). Esta política cobre só o que o código confirma hoje — qualquer integração nova (push real, pagamentos) exige atualizar este documento antes de ir ao ar.
