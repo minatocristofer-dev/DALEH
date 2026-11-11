@@ -73,7 +73,7 @@ Você pode excluir sua conta a qualquer momento dentro do app, em **Perfil → C
 
 Por motivo técnico, registros de atividade que outras pessoas compartilham com você (por exemplo, a súmula de um jogo em que você participou, ou uma convocação de time) **não são apagados fisicamente** — eles permanecem como parte do histórico do time/jogo pra outras pessoas, mas completamente desvinculados da sua identidade (sem seu nome, e-mail ou qualquer dado pessoal).
 
-**Se você não tiver mais acesso ao app** (desinstalou, perdeu a conta) e quiser pedir a exclusão mesmo assim, envie um e-mail pra [EMAIL-SUPORTE-PENDENTE] a partir do mesmo e-mail cadastrado na conta, pedindo a exclusão — respondemos e confirmamos a exclusão em até 15 dias.
+**Se você não tiver mais acesso ao app** (desinstalou, perdeu a conta) e quiser pedir a exclusão mesmo assim, envie um e-mail pra appdaleh@gmail.com a partir do mesmo e-mail cadastrado na conta, pedindo a exclusão — respondemos e confirmamos a exclusão em até 15 dias.
 
 ## 8. Seus direitos (LGPD)
 
@@ -81,12 +81,12 @@ Você pode, a qualquer momento:
 - Acessar os dados que temos sobre você (tela de Perfil, dentro do app)
 - Corrigir dados incorretos (editar perfil, dentro do app)
 - Excluir sua conta (ver seção 7)
-- Pedir uma cópia dos seus dados — entre em contato: [EMAIL-SUPORTE-PENDENTE]
+- Pedir uma cópia dos seus dados — entre em contato: appdaleh@gmail.com
 
 ## 9. Contato
 
-Dúvidas sobre esta política ou sobre seus dados: [EMAIL-SUPORTE-PENDENTE]
+Dúvidas sobre esta política ou sobre seus dados: appdaleh@gmail.com
 
 ---
 
-**Nota para quem for publicar**: `[EMAIL-SUPORTE-PENDENTE]` precisa ser trocado pelo e-mail de suporte real antes da publicação (também usado em `daleh-web/public/privacidade.html` — buscar e trocar nos dois lugares). Esta política cobre só o que o código confirma hoje — qualquer integração nova (push real, pagamentos) exige atualizar este documento antes de ir ao ar.
+**Nota para quem for publicar**: esta política cobre só o que o código confirma hoje — qualquer integração nova (push real, pagamentos) exige atualizar este documento antes de ir ao ar.

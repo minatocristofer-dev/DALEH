@@ -62,9 +62,9 @@ Baixe agora e comece a construir sua história no DALEH.
 
 | Campo | Valor |
 |---|---|
-| E-mail de suporte | [preencher] |
+| E-mail de suporte | appdaleh@gmail.com |
 | Site | [preencher, se houver] |
-| Política de Privacidade (URL pública) | [preencher — publicar `docs/PRIVACY_POLICY_DRAFT.md` revisado num link público antes de submeter] |
+| Política de Privacidade (URL pública) | https://daleh-web.onrender.com/privacidade.html |
 | URL de exclusão de conta (Data Safety) | O app já tem exclusão de conta **dentro do app** (Perfil → Configurações → Excluir minha conta) — confirmar se a Google ainda exige uma URL pública equivalente além disso, ou se a opção in-app é suficiente pra este caso |
 
 ## Classificação indicativa / público-alvo
