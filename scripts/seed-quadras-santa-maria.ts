@@ -101,16 +101,34 @@ async function registrarOuLogarDono(): Promise<string> {
   return login.dados.accessToken;
 }
 
+// Endereço completo não confirmado pra nenhuma das 13 (ver pesquisa que
+// gerou a lista) — "Santa Maria, RS" é o único dado real e confirmado em
+// todas. Existe só pra alimentar o filtro de busca por cidade
+// (VenuesService: `address: { contains: cidade }`); endereço de rua exato
+// pode ser preenchido depois, manualmente, pela tela de editar quadra.
+const ENDERECO_BASE = 'Santa Maria, RS';
+
 async function obterOuCriarQuadra(token: string, nome: string): Promise<{ id: string; criada: boolean }> {
   const minhas = await api('/venues/mine', { token });
   if (minhas.status !== 200) throw new Error(`Falha ao listar quadras: ${JSON.stringify(minhas.dados)}`);
   const existente = (minhas.dados as any[]).find((v) => v.name === nome);
-  if (existente) return { id: existente.id, criada: false };
+
+  if (existente) {
+    if (!existente.address) {
+      const atualizada = await api(`/venues/${existente.id}`, {
+        method: 'PATCH',
+        token,
+        body: { address: ENDERECO_BASE },
+      });
+      if (atualizada.status !== 200) throw new Error(`Falha ao atualizar endereço de "${nome}": ${JSON.stringify(atualizada.dados)}`);
+    }
+    return { id: existente.id, criada: false };
+  }
 
   const criada = await api('/venues', {
     method: 'POST',
     token,
-    body: { name: nome, pricePerHour: PRECO_TESTE },
+    body: { name: nome, address: ENDERECO_BASE, pricePerHour: PRECO_TESTE },
   });
   if (criada.status !== 201) throw new Error(`Falha ao criar quadra "${nome}": ${JSON.stringify(criada.dados)}`);
   return { id: criada.dados.id, criada: true };
