@@ -158,3 +158,9 @@ main().catch((erro) => {
   console.error('\n❌ Seed falhou:', erro.message ?? erro);
   process.exit(1);
 });
+
+// Transforma este arquivo num module TS (escopo próprio) em vez de script
+// global — evita colisão de nomes com scripts/seed-qa.ts no `tsc --noEmit`
+// do projeto (cada script roda isolado via ts-node, isso não afeta a
+// execução, só a checagem de tipos do projeto como um todo).
+export {};
