@@ -8,6 +8,25 @@ import 'matches_providers.dart';
 
 const _modalidades = {'FUTSAL': 'Futsal', 'SOCIETY': 'Society', 'CAMPO11': 'Campo 11'};
 
+// Quadras reais de Santa Maria sem perfil/dono cadastrado no DALEH ainda —
+// só sugestões pro campo de texto livre `locationName`, sem vínculo com
+// nenhuma Venue (ver seção "JOGOS" do schema do Prisma).
+const _quadrasSantaMaria = [
+  'Quadra da Miriam',
+  'Ginásio Basso',
+  'Ginásio Dalla Favera',
+  'Ginásio do Atlético',
+  'Ginásio Silva Jardim',
+  'Ginásio Jatobá',
+  'Ginásio Fólis',
+  'Pinheirão',
+  'Planeta Bola',
+  'Complexo G7',
+  'Quadra Cerrito',
+  'PainSport',
+  'La Guerrilla',
+];
+
 class CriarJogoScreen extends ConsumerStatefulWidget {
   const CriarJogoScreen({super.key});
 
@@ -20,7 +39,7 @@ class _CriarJogoScreenState extends ConsumerState<CriarJogoScreen> {
   DateTime? _data;
   TimeOfDay? _hora;
   final _maxPlayersCtrl = TextEditingController();
-  final _localCtrl = TextEditingController();
+  TextEditingController? _localCtrl;
   bool _privada = false;
   bool _enviando = false;
   String? _erro;
@@ -28,7 +47,6 @@ class _CriarJogoScreenState extends ConsumerState<CriarJogoScreen> {
   @override
   void dispose() {
     _maxPlayersCtrl.dispose();
-    _localCtrl.dispose();
     super.dispose();
   }
 
@@ -64,7 +82,7 @@ class _CriarJogoScreenState extends ConsumerState<CriarJogoScreen> {
     try {
       final partida = await ref.read(matchesActionsProvider).criarPartida(
             modalidade: _modalidade,
-            locationName: _localCtrl.text,
+            locationName: _localCtrl?.text ?? '',
             scheduledAt: scheduledAt.toIso8601String(),
             maxPlayers: maxPlayers,
             visibility: _privada ? 'private' : 'public',
@@ -94,16 +112,28 @@ class _CriarJogoScreenState extends ConsumerState<CriarJogoScreen> {
               style: TextStyle(color: DalehColors.muted, fontSize: 13),
             ),
             const SizedBox(height: 20),
-            TextField(
-              controller: _localCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Local (opcional)',
-                hintText: 'Ex: Quadra do Basso',
-              ),
+            Autocomplete<String>(
+              optionsBuilder: (TextEditingValue value) {
+                if (value.text.trim().isEmpty) return _quadrasSantaMaria;
+                final busca = value.text.toLowerCase();
+                return _quadrasSantaMaria.where((q) => q.toLowerCase().contains(busca));
+              },
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                _localCtrl = controller;
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: 'Local (opcional)',
+                    hintText: 'Ex: Quadra do Basso, ou escolha uma sugestão',
+                  ),
+                );
+              },
             ),
             const Padding(
               padding: EdgeInsets.only(top: 6),
               child: Text(
+                'Escolha uma quadra conhecida de Santa Maria ou digite outro local. '
                 'Pra quadras que ainda não têm perfil no DALEH — só pra mostrar onde é, '
                 'não vincula com nenhuma quadra cadastrada.',
                 style: TextStyle(color: DalehColors.muted, fontSize: 11),
