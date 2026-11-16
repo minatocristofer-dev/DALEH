@@ -81,6 +81,9 @@ async function registrarOuLogarDono(): Promise<string> {
       password: DONO.senha,
       city: CIDADE,
       state: ESTADO,
+      // Campo obrigatório no cadastro (RegisterDto) mesmo pra uma conta
+      // que não é de jogador de verdade — valor sem efeito aqui.
+      modalidades: [{ modalidade: 'SOCIETY', posicaoPrincipal: 'N/A' }],
       consentimentoDadosSensiveis: true,
     },
   });
