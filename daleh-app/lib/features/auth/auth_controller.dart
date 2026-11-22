@@ -22,6 +22,12 @@ class AuthState {
   // direto no modo salvo, sem passar pelo seletor de novo. Também é ligada
   // por "Trocar modo" dentro do app, sem precisar deslogar.
   final bool mostrarSeletorModo;
+  // Erro da troca de token do login social (Google) com o backend — esse
+  // fluxo termina de forma assíncrona (via onAuthStateChange, não na hora do
+  // tap no botão), então não dá pra devolver a mensagem direto como no
+  // login por e-mail/senha. Sem isso, uma falha aqui ficava muda: o app só
+  // voltava pra tela de login sem explicar nada (achado em teste real).
+  final String? erroLoginSocial;
 
   const AuthState({
     this.token,
@@ -30,6 +36,7 @@ class AuthState {
     this.modoAcesso = ModoAcesso.jogador,
     this.onboardingVisto = true,
     this.mostrarSeletorModo = false,
+    this.erroLoginSocial,
   });
 
   bool get logado => token != null;
@@ -41,6 +48,8 @@ class AuthState {
     ModoAcesso? modoAcesso,
     bool? onboardingVisto,
     bool? mostrarSeletorModo,
+    String? erroLoginSocial,
+    bool limparErroLoginSocial = false,
   }) =>
       AuthState(
         token: token ?? this.token,
@@ -49,6 +58,7 @@ class AuthState {
         modoAcesso: modoAcesso ?? this.modoAcesso,
         onboardingVisto: onboardingVisto ?? this.onboardingVisto,
         mostrarSeletorModo: mostrarSeletorModo ?? this.mostrarSeletorModo,
+        erroLoginSocial: limparErroLoginSocial ? null : (erroLoginSocial ?? this.erroLoginSocial),
       );
 }
 
@@ -85,8 +95,10 @@ class AuthController extends StateNotifier<AuthState> {
         await _storage.salvarToken(token);
         final modo = await _storage.obterModoAcesso();
         state = state.copyWith(token: token, modoAcesso: modo, mostrarSeletorModo: true);
-      } catch (_) {
-        // Falha na troca do token social — usuário permanece na tela de login.
+      } on ApiException catch (e) {
+        state = state.copyWith(erroLoginSocial: e.message);
+      } catch (e) {
+        state = state.copyWith(erroLoginSocial: 'Não foi possível concluir o login com Google (${e.runtimeType}). Tenta de novo.');
       }
     });
   }
@@ -142,10 +154,15 @@ class AuthController extends StateNotifier<AuthState> {
     // desenvolvimento web) e o navegador do celular não sabe reabrir o app.
     // Esse mesmo endereço precisa estar autorizado no painel do Supabase em
     // Authentication > URL Configuration > Redirect URLs.
+    state = state.copyWith(limparErroLoginSocial: true);
     await supabase.auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: 'com.dalehapp.daleh://login-callback/',
     );
+  }
+
+  void limparErroLoginSocial() {
+    state = state.copyWith(limparErroLoginSocial: true);
   }
 
   /// Persiste o modo escolhido no Seletor de Modo e fecha o seletor. O modo

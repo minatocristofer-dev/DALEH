@@ -49,6 +49,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final carregando = ref.watch(authControllerProvider).carregando;
 
+    ref.listen(authControllerProvider.select((s) => s.erroLoginSocial), (anterior, atual) {
+      if (atual == null) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(atual)));
+      ref.read(authControllerProvider.notifier).limparErroLoginSocial();
+    });
+
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
