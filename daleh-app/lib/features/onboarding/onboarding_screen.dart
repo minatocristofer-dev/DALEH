@@ -44,7 +44,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             controller: _controlador,
             itemCount: _assets.length,
             onPageChanged: (i) => setState(() => _pagina = i),
-            itemBuilder: (context, i) => Image.asset(_assets[i], fit: BoxFit.cover),
+            // alignment: centerLeft — título e tagline ficam colados na borda
+            // esquerda da arte; o corte padrão (centralizado) do BoxFit.cover
+            // arrisca cortar esse texto em telas mais altas/estreitas que a
+            // proporção original da imagem (a maioria dos Android reais).
+            // Ancorando à esquerda, o corte sempre sobra pro lado direito.
+            itemBuilder: (context, i) => Image.asset(_assets[i], fit: BoxFit.cover, alignment: Alignment.centerLeft),
           ),
           SafeArea(
             child: Padding(
