@@ -38,7 +38,7 @@ class _ApiClientFalso implements ApiClient {
   @override
   Future<String> registrar(Map<String, dynamic> dto) async => tokenDevolvido;
   @override
-  Future<String> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
+  Future<({String token, bool isNewUser})> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
   @override
   Future<List<dynamic>> getLista(String path, {required String token}) => throw UnimplementedError();
   @override

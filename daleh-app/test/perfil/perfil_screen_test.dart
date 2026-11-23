@@ -52,7 +52,7 @@ class _ApiClientNuncaUsado implements ApiClient {
   @override
   Future<String> login(String email, String senha) => throw UnimplementedError();
   @override
-  Future<String> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
+  Future<({String token, bool isNewUser})> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
   @override
   Future<Map<String, dynamic>> enviarArquivo(
     String path, {
@@ -106,7 +106,7 @@ class _ApiClientComEstado implements ApiClient {
   @override
   Future<String> login(String email, String senha) => throw UnimplementedError();
   @override
-  Future<String> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
+  Future<({String token, bool isNewUser})> loginSocial(String accessTokenSupabase, {bool consentimento = true}) => throw UnimplementedError();
   @override
   Future<Map<String, dynamic>> enviarArquivo(
     String path, {

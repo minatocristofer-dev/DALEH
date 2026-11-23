@@ -114,12 +114,12 @@ class ApiClient {
     return resp['accessToken'] as String;
   }
 
-  Future<String> loginSocial(String accessTokenSupabase, {bool consentimento = true}) async {
+  Future<({String token, bool isNewUser})> loginSocial(String accessTokenSupabase, {bool consentimento = true}) async {
     final resp = await _post('/auth/social', {
       'accessToken': accessTokenSupabase,
       'consentimentoDadosSensiveis': consentimento,
     });
-    return resp['accessToken'] as String;
+    return (token: resp['accessToken'] as String, isNewUser: resp['isNewUser'] as bool? ?? false);
   }
 
   // --- Chamadas autenticadas genéricas, usadas pelos repositórios de cada feature ---

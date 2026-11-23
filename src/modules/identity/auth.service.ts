@@ -121,6 +121,10 @@ export class AuthService {
     }
 
     let user = await this.prisma.user.findUnique({ where: { email: supabaseUser.email } });
+    // Usado só pra o app saber se deve logar "signup_completed" ou
+    // "login_completed" no analytics — sem isso, todo cadastro feito via
+    // Google ficava invisível no funil (achado em teste real com usuário).
+    const isNewUser = !user;
 
     if (!user) {
       if (dto.consentimentoDadosSensiveis !== true) {
@@ -154,7 +158,7 @@ export class AuthService {
       });
     }
 
-    return this.gerarSessao(user.id, user.email!);
+    return { ...this.gerarSessao(user.id, user.email!), isNewUser };
   }
 
   private gerarSessao(userId: string, email: string) {

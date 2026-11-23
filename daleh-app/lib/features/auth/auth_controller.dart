@@ -91,10 +91,11 @@ class AuthController extends StateNotifier<AuthState> {
       final session = data.session;
       if (session == null || state.logado) return;
       try {
-        final token = await _api.loginSocial(session.accessToken);
-        await _storage.salvarToken(token);
+        final resultado = await _api.loginSocial(session.accessToken);
+        await _storage.salvarToken(resultado.token);
         final modo = await _storage.obterModoAcesso();
-        state = state.copyWith(token: token, modoAcesso: modo, mostrarSeletorModo: true);
+        state = state.copyWith(token: resultado.token, modoAcesso: modo, mostrarSeletorModo: true);
+        unawaited(_analytics.logEvento(resultado.isNewUser ? 'signup_completed' : 'login_completed'));
       } on ApiException catch (e) {
         state = state.copyWith(erroLoginSocial: e.message);
       } catch (e) {
@@ -184,6 +185,7 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> concluirOnboarding() async {
     await _storage.salvarOnboardingVisto();
     state = state.copyWith(onboardingVisto: true);
+    unawaited(_analytics.logEvento('onboarding_completed'));
   }
 
   Future<void> sair() async {
