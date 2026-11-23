@@ -142,7 +142,7 @@ export class MatchesService {
     const [membros, posicoes] = await Promise.all([
       this.prisma.teamMember.findMany({
         where: { status: 'active', teamId: { in: [homeTeamId, awayTeamId] }, userId: { in: userIds } },
-        select: { userId: true, teamId: true },
+        select: { userId: true, teamId: true, numeroCamisa: true },
       }),
       this.prisma.playerModalidade.findMany({
         where: { modalidadeId, userId: { in: userIds } },
@@ -150,11 +150,18 @@ export class MatchesService {
       }),
     ]);
     const timePorJogador = new Map(membros.map((m) => [m.userId, m.teamId]));
+    const numeroPorJogador = new Map(membros.map((m) => [m.userId, m.numeroCamisa]));
     const posicaoPorJogador = new Map(posicoes.map((p) => [p.userId, p.posicaoPrincipal]));
 
     return attendance.map((a) => ({
       ...a,
       teamId: timePorJogador.get(a.userId) ?? null,
+      // Número de camisa é administrado pelo time (TeamMember.numeroCamisa),
+      // não existe coluna própria em MatchAttendance — só determinável pra
+      // quem é membro ativo de um dos dois times desta partida (mesmo vínculo
+      // usado pra teamId acima). Em partida avulsa (sem comEscalacao) ou pra
+      // quem não tem número definido, fica null — nunca inventado.
+      numeroCamisa: numeroPorJogador.get(a.userId) ?? null,
       posicaoPrincipal: posicaoPorJogador.get(a.userId) ?? null,
     }));
   }

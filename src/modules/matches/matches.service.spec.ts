@@ -477,11 +477,11 @@ describe('MatchesService', () => {
       ],
     };
 
-    it('resolve o time (casa/fora) e a posição de cada participante a partir do TeamMember e do PlayerModalidade atuais', async () => {
+    it('resolve o time (casa/fora), a posição e o número de camisa de cada participante a partir do TeamMember e do PlayerModalidade atuais', async () => {
       prisma.match.findUnique.mockResolvedValue(partidaComTimes);
       prisma.teamMember.findMany.mockResolvedValue([
-        { userId: 'user-joao', teamId: 'time-a' },
-        { userId: 'user-marcos', teamId: 'time-b' },
+        { userId: 'user-joao', teamId: 'time-a', numeroCamisa: 9 },
+        { userId: 'user-marcos', teamId: 'time-b', numeroCamisa: null },
       ]);
       prisma.playerModalidade.findMany.mockResolvedValue([
         { userId: 'user-joao', posicaoPrincipal: 'Atacante' },
@@ -490,9 +490,9 @@ describe('MatchesService', () => {
       const partida = await service.obterPartida('match-1');
 
       expect(partida.attendance).toEqual([
-        { userId: 'user-joao', status: 'confirmed', teamId: 'time-a', posicaoPrincipal: 'Atacante', valorDevido: null },
-        { userId: 'user-marcos', status: 'confirmed', teamId: 'time-b', posicaoPrincipal: null, valorDevido: null },
-        { userId: 'user-sem-time', status: 'confirmed', teamId: null, posicaoPrincipal: null, valorDevido: null },
+        { userId: 'user-joao', status: 'confirmed', teamId: 'time-a', numeroCamisa: 9, posicaoPrincipal: 'Atacante', valorDevido: null },
+        { userId: 'user-marcos', status: 'confirmed', teamId: 'time-b', numeroCamisa: null, posicaoPrincipal: null, valorDevido: null },
+        { userId: 'user-sem-time', status: 'confirmed', teamId: null, numeroCamisa: null, posicaoPrincipal: null, valorDevido: null },
       ]);
       expect(prisma.playerModalidade.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ modalidadeId: 'modalidade-society' }) }),
@@ -507,6 +507,7 @@ describe('MatchesService', () => {
 
       for (const participante of partida.attendance as any[]) {
         expect(participante.teamId).toBeNull();
+        expect(participante.numeroCamisa).toBeNull();
         expect(participante.posicaoPrincipal).toBeNull();
       }
     });

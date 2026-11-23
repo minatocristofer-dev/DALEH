@@ -14,6 +14,12 @@ class MatchAttendance {
   // histórica. Fica null quando não determinável — nunca inventado.
   final String? teamId;
   final String? posicaoPrincipal;
+  // Número de camisa administrado pelo time (TeamMember.numeroCamisa) — só
+  // vem preenchido quando o participante é membro ativo de um dos dois times
+  // da partida (mesmo vínculo usado pra resolver `teamId`, ver
+  // MatchesService.comEscalacao). Em partida avulsa ou sem número definido,
+  // fica null — nunca inventado.
+  final int? numeroCamisa;
   // Controle manual de pagamento da quadra: nulo = pendente.
   final DateTime? pagoEm;
   // Quanto esse jogador deve (nulo = sem valor da quadra ou sem time definido).
@@ -29,6 +35,7 @@ class MatchAttendance {
     this.userAvatarUrl,
     this.teamId,
     this.posicaoPrincipal,
+    this.numeroCamisa,
     this.pagoEm,
     this.valorDevido,
   });
@@ -45,6 +52,7 @@ class MatchAttendance {
       userAvatarUrl: user?['avatarUrl'] as String?,
       teamId: json['teamId'] as String?,
       posicaoPrincipal: json['posicaoPrincipal'] as String?,
+      numeroCamisa: json['numeroCamisa'] as int?,
       pagoEm: json['pagoEm'] == null ? null : DateTime.parse(json['pagoEm'] as String),
       valorDevido: (json['valorDevido'] as num?)?.toDouble(),
     );

@@ -199,7 +199,7 @@ void main() {
       expect(espera.naEspera, isTrue);
     });
 
-    test('lê teamId e posicaoPrincipal da escalação (Fase visual) quando presentes', () {
+    test('lê teamId, posicaoPrincipal e numeroCamisa da escalação (Fase visual) quando presentes', () {
       final comEscalacao = MatchAttendance.fromJson({
         'id': 'a1',
         'matchId': 'match-1',
@@ -208,6 +208,7 @@ void main() {
         'createdAt': '2026-08-21T00:00:00.000Z',
         'teamId': 'time-a',
         'posicaoPrincipal': 'Atacante',
+        'numeroCamisa': 9,
         'user': {'id': 'user-1', 'fullName': 'Jogador', 'avatarUrl': null},
       });
       final semEscalacao = MatchAttendance.fromJson({
@@ -220,8 +221,10 @@ void main() {
 
       expect(comEscalacao.teamId, 'time-a');
       expect(comEscalacao.posicaoPrincipal, 'Atacante');
+      expect(comEscalacao.numeroCamisa, 9);
       expect(semEscalacao.teamId, isNull);
       expect(semEscalacao.posicaoPrincipal, isNull);
+      expect(semEscalacao.numeroCamisa, isNull);
     });
   });
 

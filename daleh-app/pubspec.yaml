@@ -122,6 +122,8 @@ flutter:
     - assets/onboarding/encontre_seu_jogo.png
     - assets/onboarding/gerencie_seu_time.png
     - assets/onboarding/controle_sua_quadra.png
+    - assets/convocados/fundo_society.png
+    - assets/convocados/fundo_futsal.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
