@@ -50,7 +50,7 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
   }
 
   Future<void> _escolherFoto(ImageSource origem) async {
-    final XFile? arquivo;
+    XFile? arquivo;
     try {
       arquivo = await _tentarAbrirPicker(origem);
     } catch (e) {
@@ -68,7 +68,6 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
       // de desistir — só pra câmera, já que a galeria não tem esse
       // problema de inicialização de hardware.
       if (origem == ImageSource.camera) {
-        await Future.delayed(const Duration(milliseconds: 600));
         try {
           arquivo = await _tentarAbrirPicker(origem);
         } catch (_) {
