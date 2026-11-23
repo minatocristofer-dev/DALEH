@@ -20,7 +20,7 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> with WidgetsBindingObserver {
   final _emailCtrl = TextEditingController();
   final _senhaCtrl = TextEditingController();
   String? _erro;
@@ -28,10 +28,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _manterConectado = true;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _emailCtrl.dispose();
     _senhaCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    // App voltou do navegador externo (fluxo do Google) — se não chegou
+    // nenhuma sessão nova, destrava o botão em vez de deixá-lo "carregando"
+    // pra sempre (achado em teste real: navegador fechado sem concluir).
+    if (estado == AppLifecycleState.resumed) {
+      ref.read(authControllerProvider.notifier).voltouAoPrimeiroPlanoSemConcluirGoogle();
+    }
   }
 
   Future<void> _entrar() async {
@@ -48,6 +65,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final carregando = ref.watch(authControllerProvider).carregando;
+    final carregandoGoogle = ref.watch(authControllerProvider.select((s) => s.carregandoGoogle));
 
     ref.listen(authControllerProvider.select((s) => s.erroLoginSocial), (anterior, atual) {
       if (atual == null) return;
@@ -222,12 +240,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       SizedBox(
                         height: 52,
                         child: OutlinedButton(
-                          onPressed: () => ref.read(authControllerProvider.notifier).entrarComGoogle(),
+                          onPressed: carregandoGoogle
+                              ? null
+                              : () => ref.read(authControllerProvider.notifier).entrarComGoogle(),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: DalehColors.line),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(DalehRadius.pill)),
                           ),
-                          child: const Row(
+                          child: carregandoGoogle
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(strokeWidth: 2.4, color: DalehColors.text),
+                                )
+                              : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               GoogleGIcon(size: 20),

@@ -39,34 +39,52 @@ class _EditarFotoScreenState extends ConsumerState<EditarFotoScreen> {
   String? _avisoAjusteAutomatico;
   bool _ajustando = false;
 
+  Future<XFile?> _tentarAbrirPicker(ImageSource origem) {
+    // `maxWidth`/`maxHeight` redimensionam a foto ainda dentro do picker,
+    // antes de qualquer processamento — sem isso, uma foto tirada na hora
+    // pela câmera (facilmente 4000x3000+ num aparelho real, bem maior que
+    // a média das fotos de galeria) faz o processamento pixel a pixel da
+    // segmentação alocar dezenas de MB em múltiplos buffers e derruba o
+    // app por falta de memória.
+    return _picker.pickImage(source: origem, imageQuality: 90, maxWidth: 1600, maxHeight: 1600);
+  }
+
   Future<void> _escolherFoto(ImageSource origem) async {
     final XFile? arquivo;
     try {
-      // `maxWidth`/`maxHeight` redimensionam a foto ainda dentro do picker,
-      // antes de qualquer processamento — sem isso, uma foto tirada na hora
-      // pela câmera (facilmente 4000x3000+ num aparelho real, bem maior que
-      // a média das fotos de galeria) faz o processamento pixel a pixel da
-      // segmentação alocar dezenas de MB em múltiplos buffers e derruba o
-      // app por falta de memória.
-      arquivo = await _picker.pickImage(
-        source: origem,
-        imageQuality: 90,
-        maxWidth: 1600,
-        maxHeight: 1600,
-      );
+      arquivo = await _tentarAbrirPicker(origem);
     } catch (e) {
       // Câmera/galeria pode falhar por permissão negada, app de câmera
       // ausente, etc. — sem esse catch, qualquer uma dessas situações
       // derrubava o fluxo em silêncio (achado em QA real num aparelho
       // físico; nunca reproduzido no emulador, que concede permissão sem
       // perguntar).
-      if (!mounted) return;
-      setState(() {
-        _erro = origem == ImageSource.camera
-            ? 'Não foi possível abrir a câmera. Verifique se o DALEH tem permissão de câmera nas configurações do aparelho.'
-            : 'Não foi possível abrir a galeria. Verifique as permissões do DALEH nas configurações do aparelho.';
-      });
-      return;
+      //
+      // Achado num segundo teste real: em alguns aparelhos a CÂMERA
+      // especificamente falha na primeira chamada logo depois do diálogo
+      // de permissão (hardware/câmera ainda inicializando), mas funciona
+      // normalmente na tentativa seguinte, poucos instantes depois. Em vez
+      // de já mostrar erro pro jogador, tenta mais uma vez sozinho antes
+      // de desistir — só pra câmera, já que a galeria não tem esse
+      // problema de inicialização de hardware.
+      if (origem == ImageSource.camera) {
+        await Future.delayed(const Duration(milliseconds: 600));
+        try {
+          arquivo = await _tentarAbrirPicker(origem);
+        } catch (_) {
+          if (!mounted) return;
+          setState(() {
+            _erro = 'Não foi possível abrir a câmera. Verifique se o DALEH tem permissão de câmera nas configurações do aparelho.';
+          });
+          return;
+        }
+      } else {
+        if (!mounted) return;
+        setState(() {
+          _erro = 'Não foi possível abrir a galeria. Verifique as permissões do DALEH nas configurações do aparelho.';
+        });
+        return;
+      }
     }
     if (arquivo == null) return;
 

@@ -28,6 +28,13 @@ class AuthState {
   // login por e-mail/senha. Sem isso, uma falha aqui ficava muda: o app só
   // voltava pra tela de login sem explicar nada (achado em teste real).
   final String? erroLoginSocial;
+  // Liga no tap de "Continuar com Google", desliga quando a troca de token
+  // termina (sucesso ou erro) ou quando o app volta de primeiro plano sem
+  // nenhuma sessão nova ter chegado (usuário voltou do navegador sem
+  // concluir). Sem isso, o botão ficava parado sem nenhum feedback durante
+  // o tempo todo do navegador externo — o jogador achava que não tinha
+  // funcionado e tocava de novo no meio do fluxo (achado em teste real).
+  final bool carregandoGoogle;
 
   const AuthState({
     this.token,
@@ -37,6 +44,7 @@ class AuthState {
     this.onboardingVisto = true,
     this.mostrarSeletorModo = false,
     this.erroLoginSocial,
+    this.carregandoGoogle = false,
   });
 
   bool get logado => token != null;
@@ -50,6 +58,7 @@ class AuthState {
     bool? mostrarSeletorModo,
     String? erroLoginSocial,
     bool limparErroLoginSocial = false,
+    bool? carregandoGoogle,
   }) =>
       AuthState(
         token: token ?? this.token,
@@ -59,6 +68,7 @@ class AuthState {
         onboardingVisto: onboardingVisto ?? this.onboardingVisto,
         mostrarSeletorModo: mostrarSeletorModo ?? this.mostrarSeletorModo,
         erroLoginSocial: limparErroLoginSocial ? null : (erroLoginSocial ?? this.erroLoginSocial),
+        carregandoGoogle: carregandoGoogle ?? this.carregandoGoogle,
       );
 }
 
@@ -94,12 +104,15 @@ class AuthController extends StateNotifier<AuthState> {
         final resultado = await _api.loginSocial(session.accessToken);
         await _storage.salvarToken(resultado.token);
         final modo = await _storage.obterModoAcesso();
-        state = state.copyWith(token: resultado.token, modoAcesso: modo, mostrarSeletorModo: true);
+        state = state.copyWith(token: resultado.token, modoAcesso: modo, mostrarSeletorModo: true, carregandoGoogle: false);
         unawaited(_analytics.logEvento(resultado.isNewUser ? 'signup_completed' : 'login_completed'));
       } on ApiException catch (e) {
-        state = state.copyWith(erroLoginSocial: e.message);
+        state = state.copyWith(erroLoginSocial: e.message, carregandoGoogle: false);
       } catch (e) {
-        state = state.copyWith(erroLoginSocial: 'Não foi possível concluir o login com Google (${e.runtimeType}). Tenta de novo.');
+        state = state.copyWith(
+          erroLoginSocial: 'Não foi possível concluir o login com Google (${e.runtimeType}). Tenta de novo.',
+          carregandoGoogle: false,
+        );
       }
     });
   }
@@ -155,11 +168,22 @@ class AuthController extends StateNotifier<AuthState> {
     // desenvolvimento web) e o navegador do celular não sabe reabrir o app.
     // Esse mesmo endereço precisa estar autorizado no painel do Supabase em
     // Authentication > URL Configuration > Redirect URLs.
-    state = state.copyWith(limparErroLoginSocial: true);
+    state = state.copyWith(limparErroLoginSocial: true, carregandoGoogle: true);
     await supabase.auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: 'com.dalehapp.daleh://login-callback/',
     );
+  }
+
+  // Chamado pelo LoginScreen quando o app volta pro primeiro plano — se
+  // `carregandoGoogle` ainda estiver ligado nesse momento e nenhuma sessão
+  // tiver chegado, é porque o jogador voltou do navegador sem concluir
+  // (cancelou, fechou a aba, etc.). Sem isso, o botão ficaria "carregando"
+  // pra sempre nesse caso.
+  void voltouAoPrimeiroPlanoSemConcluirGoogle() {
+    if (state.carregandoGoogle && !state.logado) {
+      state = state.copyWith(carregandoGoogle: false);
+    }
   }
 
   void limparErroLoginSocial() {

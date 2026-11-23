@@ -96,12 +96,13 @@ flutter_launcher_icons:
   image_path: "assets/icon/app_icon.png"
   adaptive_icon_background: "#000000"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
-  # Sem isso, o pacote aplica um inset de 16% por padrão no XML do ícone
-  # adaptativo — como a arte já preenche o quadrado (full-bleed), esse
-  # inset extra encolhia o ícone dentro do círculo/squircle do launcher
-  # (era exatamente o "ícone pequeno" relatado em QA). O próprio Android já
-  # garante a área de segurança central (66,7%) de qualquer jeito.
-  adaptive_icon_foreground_inset: 0
+  # A arte é full-bleed (escudo + "DALEH" quase tocando as 4 bordas) — inset
+  # 0 deixava o ícone grande, mas em launchers com máscara mais agressiva
+  # (MIUI/Xiaomi confirmado em teste real) cortava o texto "DALEH" (virava
+  # "DALE"). 16% (padrão do pacote) tinha sido reportado como "pequeno
+  # demais" antes. 8% é o meio-termo: ainda maior que o padrão, mas com
+  # margem suficiente pra sobreviver a máscaras mais apertadas.
+  adaptive_icon_foreground_inset: 8
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
