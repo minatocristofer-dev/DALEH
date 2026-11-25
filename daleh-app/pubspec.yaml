@@ -87,22 +87,26 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.3
 
 # Config do flutter_launcher_icons — ícone do app. Adaptive icon: fundo preto
-# sólido (#030303, mesma cor do fundo da logo) e primeiro plano com o escudo
-# centralizado, pra o escudo preencher a máscara circular do launcher. O
-# app_icon.png continua sendo o ícone legacy (fallback em Androids antigos).
+# sólido (#000000) e primeiro plano com o escudo centralizado.
+#
+# A margem de segurança (~18% de cada lado) está GRAVADA NOS PIXELS de
+# app_icon.png/app_icon_foreground.png (achado em teste real: numa Xiaomi/
+# MIUI, o launcher usa o ícone LEGACY (app_icon.png) direto, sem nenhuma
+# máscara adaptativa/circular — o `adaptive_icon_foreground_inset` do
+# flutter_launcher_icons só afeta o layer adaptativo via
+# mipmap-anydpi-v26/ic_launcher.xml, nunca o ícone legacy; por isso só esse
+# inset não bastava e o "DALEH" continuava cortado nas bordas). Com a margem
+# já no arquivo, o texto sobrevive tanto a launchers sem máscara (ícone
+# aparece quadrado, mas sem corte) quanto aos que recortam em círculo/squircle.
+# Por isso o inset do pacote fica em 0: aplicar os dois ao mesmo tempo
+# encolheria o escudo duas vezes.
 flutter_launcher_icons:
   android: true
   ios: false
   image_path: "assets/icon/app_icon.png"
   adaptive_icon_background: "#000000"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
-  # A arte é full-bleed (escudo + "DALEH" quase tocando as 4 bordas) — inset
-  # 0 deixava o ícone grande, mas em launchers com máscara mais agressiva
-  # (MIUI/Xiaomi confirmado em teste real) cortava o texto "DALEH" (virava
-  # "DALE"). 16% (padrão do pacote) tinha sido reportado como "pequeno
-  # demais" antes. 8% é o meio-termo: ainda maior que o padrão, mas com
-  # margem suficiente pra sobreviver a máscaras mais apertadas.
-  adaptive_icon_foreground_inset: 8
+  adaptive_icon_foreground_inset: 0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
